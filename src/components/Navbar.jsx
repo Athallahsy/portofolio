@@ -7,14 +7,16 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white text-black shadow-xl sticky top-0 z-50 border-b border-gray-200 transition-all duration-700">
-      <div className="max-w-7xl mx-auto flex justify-between items-center py-5 px-6 md:px-12">
-        {/* Logo with GIF */}
-        <div className="flex items-center space-x-5">
-          <img
-            src={`${process.env.PUBLIC_URL}/Happy Pixel Sticker.gif`}
-            alt="Animated Logo"
-            className="absolute bottom-0 right-0 w-20 pb-1"
-          />
+      <div className="max-w-7xl mx-auto flex justify-between items-center py-5 px-6 md:px-12 relative">
+        {/* Floating GIF at bottom navbar */}
+        <img
+          src={`${process.env.PUBLIC_URL}/Happy Pixel Sticker.gif`}
+          alt="Animated Logo"
+          className="hidden md:block absolute -bottom-6 right-2 w-20"
+        />
+
+        {/* Logo */}
+        <div className="flex items-center space-x-3">
           <h1 className="text-3xl font-extrabold tracking-tight font-space relative group flex items-center space-x-1">
             <span className="text-blue-900 text-2xl">{'</>'}</span>
             <span className="text-black group-hover:text-blue-900 transition duration-300">Atha</span>
@@ -44,12 +46,7 @@ const Navbar = () => {
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle Menu"
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -62,9 +59,9 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {menuOpen && (
-        <div className="md:hidden px-6 pb-6 bg-white border-t border-gray-100">
+        <div className="md:hidden px-6 pb-6 bg-white border-t border-gray-100 z-40">
           <ul className="space-y-3 text-black font-medium text-base pt-4">
-            {navItems.map((item, index) => (
+            {navItems.map((item) => (
               <li key={item} className="transition hover:scale-105">
                 <a
                   href={`#${item}`}
