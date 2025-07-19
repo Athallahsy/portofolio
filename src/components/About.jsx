@@ -88,7 +88,7 @@ const About = () => {
               <div className="absolute -inset-2 bg-gradient-to-r from-blue-900 to-slate-800 rounded-full blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
               
               <img
-                src="`${process.env.PUBLIC_URL}/foto-portofolio.jpg`"
+                src={`${process.env.PUBLIC_URL}/foto-portofolio.jpg`}
                 alt="Athallah"
                 className="w-48 h-48 md:w-64 md:h-64 rounded-full object-cover shadow-2xl z-10 transition-all duration-500 group-hover:scale-110 group-hover:shadow-3xl border-4 border-white/80"
               />
@@ -106,7 +106,7 @@ const About = () => {
             <div className="relative">
               <div className="absolute -inset-3 bg-gradient-to-r from-slate-800/30 to-blue-900/30 rounded-full blur-lg animate-bounce"></div>
               <img
-                src="`${process.env.PUBLIC_URL}/cat-ngoding.gif`"
+                src={`${process.env.PUBLIC_URL}/cat-ngoding.gif`}
                 alt="Athallah animated"
                 className="w-28 h-28 md:w-32 md:h-32 object-contain transform transition-all duration-300 group-hover:scale-125 group-hover:rotate-12 bg-white/80 rounded-full p-2 shadow-xl"
               />
