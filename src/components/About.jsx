@@ -84,13 +84,11 @@ const About = () => {
           <div className="relative z-10 group">
             <div className="relative overflow-hidden rounded-full">
               {/* Enhanced photo container */}
-              <div className="absolute -inset-4 bg-gradient-to-r from-slate-800 to-blue-900 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity duration-500"></div>
-              <div className="absolute -inset-2 bg-gradient-to-r from-blue-900 to-slate-800 rounded-full blur-lg opacity-20 group-hover:opacity-40 transition-opacity duration-500"></div>
               
               <img
                 src={`${process.env.PUBLIC_URL}/foto-portofolio.jpg`}
                 alt="Athallah"
-                className="w-48 h-48 md:w-64 md:h-64 rounded-full object-cover shadow-2xl z-10 transition-all duration-500 group-hover:scale-110 group-hover:shadow-3xl border-4 border-white/80"
+                className="w-48 h-48 md:w-64 md:h-64 rounded-full object-cover z-10 transition-all duration-500 group-hover:scale-110 border-4 border-white/80"
               />
               <div className="absolute inset-0 bg-gradient-to-r from-slate-800/20 to-blue-900/20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
             </div>
