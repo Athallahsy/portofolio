@@ -24,7 +24,7 @@ const Hero = () => {
         <div className="relative group w-fit mx-auto mb-8">
           <div className="absolute -inset-4 bg-blue-900/30 rounded-full blur-lg group-hover:opacity-60 animate-pulse transition-all duration-500" />
           <img
-            src="/ghibli-me.jpg"
+            src="`${process.env.PUBLIC_URL}/ghibli-me.jpg`"
             alt="Athallah Muhammad Syaffa"
             className="relative w-40 h-40 md:w-48 md:h-48 rounded-full object-cover shadow-2xl transition-transform duration-500 group-hover:scale-110 border-4 border-blue-900/40"
             data-aos="zoom-in"

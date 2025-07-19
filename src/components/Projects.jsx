@@ -3,14 +3,14 @@ import React from 'react';
 const projects = [
   {
     name: "Inkwell",
-    image: "/projects/Inkwell.png",
+    image: "`${process.env.PUBLIC_URL}/projects/Inkwell.png`",
     description: "Inkwell is a web-based blog and note-taking application built with Laravel. Designed to help users document their thoughts and reflections.",
     tech: ["Laravel", "Blade", "Bootstrap"],
     link: "#"
   },
   {
     name: "Finote",
-    image: "/projects/Finote.png",
+    image: "`${process.env.PUBLIC_URL}`/projects/Finote.png",
     description: "Finote is a mobile app built with Flutter to help users manage and track their daily finances with a minimalist interface and powerful features.",
     tech: ["Flutter", "Dart"],
     link: "#"

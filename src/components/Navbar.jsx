@@ -11,7 +11,7 @@ const Navbar = () => {
         {/* Logo with GIF */}
         <div className="flex items-center space-x-5">
           <img
-            src="/Happy Pixel Sticker.gif"
+            src="`${process.env.PUBLIC_URL}/Happy Pixel Sticker.gif`"
             alt="Animated Logo"
             className="absolute bottom-0 right-0 w-20 pb-1"
           />
