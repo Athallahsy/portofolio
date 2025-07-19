@@ -102,13 +102,13 @@ const About = () => {
           </div>
 
           {/* ANIMATED GIF */}
-          <div className="absolute bottom-0 right-0 md:-right-6 md:-bottom-6 z-20 group">
+          <div className="absolute bottom-2 right-2 md:-right-6 md:-bottom-6 z-20 group">
             <div className="relative">
               <div className="absolute -inset-3 bg-gradient-to-r from-slate-800/30 to-blue-900/30 rounded-full blur-lg animate-bounce"></div>
               <img
                 src={`${process.env.PUBLIC_URL}/cat-ngoding.gif`}
                 alt="Athallah animated"
-                className="w-28 h-28 md:w-32 md:h-32 object-contain transform transition-all duration-300 group-hover:scale-125 group-hover:rotate-12 bg-white/80 rounded-full p-2 shadow-xl"
+                className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 object-contain transform transition-all duration-300 group-hover:scale-125 group-hover:rotate-12 bg-white/80 rounded-full p-2 shadow-xl"
               />
             </div>
           </div>
