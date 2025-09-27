@@ -14,6 +14,13 @@ const projects = [
     description: "Finote is a mobile app built with Flutter to help users manage and track their daily finances with a minimalist interface and powerful features.",
     tech: ["Flutter", "Dart"],
     link: "#"
+  },
+  {
+    name: "Donasi-Kita",
+    image: `${process.env.PUBLIC_URL}/projects/donasi-kita.png`,
+    description: "Responsive website built using WordPress with Astra theme and Spectra plugin to create a modern and professional appearance. Features clean design, fast loading speeds, and optimal user experience across all devices.",
+    tech: ["WordPress", "Astra", "Spectra"],
+    link: "https://donasi.wuaze.com/"
   }
 ];
 
