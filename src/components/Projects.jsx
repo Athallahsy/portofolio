@@ -4,24 +4,24 @@ const projects = [
   {
     name: "Inkwell",
     image: `${process.env.PUBLIC_URL}/projects/Inkwell.png`,
-    description: "Inkwell is a web-based blog and note-taking application built with Laravel. Designed to help users document their thoughts and reflections.",
-    tech: ["Laravel", "Blade", "Bootstrap"],
-    link: "#"
+    description: "A web-based blog platform built with Laravel. Features user authentication, article management, categories, rich text editor, admin panel, and responsive design.",
+    tech: ["Laravel", "MySQL", "Blade", "Bootstrap"],
+    link: "https://github.com/Athallahsy/inkwell"
   },
   {
     name: "Finote",
     image: `${process.env.PUBLIC_URL}/projects/Finote.png`,
-    description: "Finote is a mobile app built with Flutter to help users manage and track their daily finances with a minimalist interface and powerful features.",
-    tech: ["Flutter", "Dart"],
-    link: "#"
+    description: "Personal finance manager app with Laravel REST API backend. Features transaction tracking, category management, monthly reports, budget planning, and admin panel with Filament.",
+    tech: ["Laravel", "MySQL", "Sanctum", "Filament", "REST API"],
+    link: "https://github.com/Athallahsy/finote"
   },
   {
-    name: "Donasi-Kita",
-    image: `${process.env.PUBLIC_URL}/projects/donasi-kita.png`,
-    description: "Responsive website built using WordPress with Astra theme and Spectra plugin to create a modern and professional appearance. Features clean design, fast loading speeds, and optimal user experience across all devices.",
-    tech: ["WordPress", "Astra", "Spectra"],
-    link: "https://donasi.wuaze.com/"
-  }
+    name: "Muhayya Fair 2025",
+    image: `${process.env.PUBLIC_URL}/projects/muhayya-fair.png`,
+    description: "Event landing page for Muhayya Fair 2025 — an annual competition festival by SD Muhammadiyah Haijah Nurijah Banjarmasin. Features competition categories, event schedule, registration links, and social media integration.",
+    tech: ["HTML", "CSS", "Bootstrap", "AOS"],
+    link: "https://muhayya-fair.vercel.app/"
+}
 ];
 
 const Projects = () => (
