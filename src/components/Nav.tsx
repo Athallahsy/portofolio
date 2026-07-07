@@ -1,0 +1,373 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
+
+type NavState = "hero" | "hidden" | "visible";
+
+const LINKS = [
+  { label: "About", id: "about" },
+  { label: "Skills", id: "skills" },
+  { label: "Projects", id: "projects" },
+  { label: "Contact", id: "contact" },
+];
+
+export default function Nav() {
+  const [navState, setNavState] = useState<NavState>("hero");
+  const [isMobileMenuOpen, setMobileMenu] = useState(false);
+  const [hoveredId, setHoveredId] = useState<string>("");
+  const [lightness, setLightness] = useState(0);
+
+  const pillRef = useRef<HTMLDivElement>(null);
+  const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const indicatorRef = useRef<HTMLDivElement>(null);
+  const smoothedLightness = useRef(0);
+
+  /* ── Background color sampling ── */
+  useEffect(() => {
+    const parseRgba = (str: string) => {
+      const match = str.match(
+        /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\)/,
+      );
+      if (!match) return null;
+      return {
+        r: Number(match[1]),
+        g: Number(match[2]),
+        b: Number(match[3]),
+        a: match[4] !== undefined ? Number(match[4]) : 1,
+      };
+    };
+
+    const luminance = (r: number, g: number, b: number) => {
+      const norm = [r, g, b].map((c) => {
+        const s = c / 255;
+        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+      });
+      return 0.2126 * norm[0] + 0.7152 * norm[1] + 0.0722 * norm[2];
+    };
+
+    const sampleAt = (x: number, y: number): number | null => {
+      let el = document.elementFromPoint(x, y) as HTMLElement | null;
+      while (el) {
+        const bg = window.getComputedStyle(el).backgroundColor;
+        const parsed = parseRgba(bg);
+        if (parsed && parsed.a > 0) {
+          return luminance(parsed.r, parsed.g, parsed.b);
+        }
+        el = el.parentElement;
+      }
+      return null;
+    };
+
+    let rafId: number | null = null;
+
+    const tick = () => {
+      const current = smoothedLightness.current;
+      const target = targetLightness.current;
+      const next = current + (target - current) * 0.08;
+      smoothedLightness.current = next;
+      setLightness(next);
+      if (Math.abs(target - next) > 0.002) {
+        rafId = requestAnimationFrame(tick);
+      } else {
+        rafId = null;
+      }
+    };
+
+    const targetLightness = { current: 0 };
+
+    const startSmoothing = () => {
+      if (rafId === null) rafId = requestAnimationFrame(tick);
+    };
+
+    let scrollCount = 0;
+    const SAMPLE_EVERY = 3;
+
+    const onScrollSample = () => {
+      scrollCount++;
+      if (scrollCount % SAMPLE_EVERY !== 0) return;
+      const sampleX = window.innerWidth - 120;
+      const sampleY = 40;
+      const result = sampleAt(sampleX, sampleY);
+      if (result !== null) {
+        targetLightness.current = result;
+        startSmoothing();
+      }
+    };
+
+    onScrollSample();
+
+    window.addEventListener("scroll", onScrollSample, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScrollSample);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  /* ── Scroll behavior ── */
+  useEffect(() => {
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 80) setNavState("hero");
+      else if (y > lastY) setNavState("hidden");
+      else setNavState("visible");
+      lastY = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  /* ── Close mobile menu when hidden ── */
+  useEffect(() => {
+    if (navState === "hidden") setMobileMenu(false);
+  }, [navState]);
+
+  /* ── Sliding indicator animation (hover-only) ── */
+  useGSAP(
+    () => {
+      const hoveredEl = linkRefs.current[hoveredId];
+      const pillEl = pillRef.current;
+      const indicatorEl = indicatorRef.current;
+
+      if (!hoveredEl || !pillEl || !indicatorEl || !hoveredId) {
+        if (indicatorEl) gsap.to(indicatorEl, { opacity: 0, duration: 0.2 });
+        return;
+      }
+
+      const pillRect = pillEl.getBoundingClientRect();
+      const linkRect = hoveredEl.getBoundingClientRect();
+      const x = linkRect.left - pillRect.left;
+      const width = linkRect.width;
+
+      gsap.to(indicatorEl, {
+        x,
+        width,
+        opacity: 1,
+        duration: 0.35,
+        ease: "power3.out",
+      });
+    },
+    { dependencies: [hoveredId], scope: pillRef },
+  );
+
+  /* ── Smooth scroll ── */
+  const handleClick = (e: React.MouseEvent, id: string) => {
+    e.preventDefault();
+    setMobileMenu(false);
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const isHero = navState === "hero";
+  const isHidden = navState === "hidden";
+
+  const mix = (a: number, b: number, t: number) => a + (b - a) * t;
+  const mixRgb = (
+    c1: [number, number, number],
+    c2: [number, number, number],
+    t: number,
+  ): string =>
+    `rgb(${Math.round(mix(c1[0], c2[0], t))}, ${Math.round(mix(c1[1], c2[1], t))}, ${Math.round(mix(c1[2], c2[2], t))})`;
+
+  const t = lightness;
+
+  const navColors = {
+    text: mixRgb([255, 255, 255], [10, 10, 10], t),
+    // Glass: sangat transparan, blur kuat — warna tint tipis ikut lightness
+    // section gelap → tint putih tipis, section terang → tint hitam tipis
+    pillBg: `rgba(${Math.round(mix(255, 10, t))}, ${Math.round(mix(255, 10, t))}, ${Math.round(mix(255, 10, t))}, ${mix(0.12, 0.55, t)})`,
+    // Border: highlight putih tipis di atas (kesan kaca), hitam tipis kalau section terang
+    pillBorder: `1px solid rgba(${Math.round(mix(255, 0, t))}, ${Math.round(mix(255, 0, t))}, ${Math.round(mix(255, 0, t))}, ${mix(0.2, 0.06, t)})`,
+    pillShadow: `0 4px 32px rgba(0, 0, 0, ${mix(0.08, 0.18, t)}), inset 0 1px 0 rgba(255,255,255,${mix(0.18, 0.03, t)})`,
+    pillContentText: mixRgb([10, 10, 10], [255, 255, 255], t),
+  };
+
+  const sharedTransition: React.CSSProperties = {
+    opacity: isHidden ? 0 : 1,
+    transform: isHidden ? "translateY(-20px)" : "translateY(0)",
+    transition: navState === "visible" ? "all 0.25s ease-out" : "all 0.3s ease",
+  };
+
+  return (
+    <>
+      {/* ── LOGO ── */}
+      <a
+        href="#hero"
+        onClick={(e) => handleClick(e, "hero")}
+        style={{
+          position: "fixed",
+          top: "24px",
+          left: "clamp(24px, 6vw, 96px)",
+          zIndex: 1000,
+          fontFamily: "var(--font-jakarta), sans-serif",
+          fontSize: "16px",
+          fontWeight: 600,
+          textDecoration: "none",
+          cursor: "pointer",
+          ...sharedTransition,
+        }}
+      >
+        <span style={{ color: isHero ? "#FFFFFF" : navColors.text }}>Athallah</span>
+        <span style={{ color: "#7DD3FC" }}>sy</span>
+      </a>
+
+      {/* ── DESKTOP NAV PILL ── */}
+      <nav
+        ref={pillRef}
+        className="hidden md:flex"
+        style={{
+          position: "fixed",
+          top: "24px",
+          right: "clamp(24px, 6vw, 96px)",
+          zIndex: 1000,
+          alignItems: "center",
+          gap: "4px",
+          background: isHero ? "transparent" : navColors.pillBg,
+          backdropFilter: isHero ? "none" : "blur(28px) saturate(180%)",
+          WebkitBackdropFilter: isHero ? "none" : "blur(28px) saturate(180%)",
+          border: isHero ? "1px solid transparent" : navColors.pillBorder,
+          boxShadow: isHero ? "none" : navColors.pillShadow,
+          borderRadius: "999px",
+          padding: "6px",
+          transition: "backdrop-filter 0.3s ease",
+          ...sharedTransition,
+        }}
+      >
+        {/* Indicator — hitam solid */}
+        <div
+          ref={indicatorRef}
+          style={{
+            position: "absolute",
+            top: "6px",
+            left: 0,
+            height: "calc(100% - 12px)",
+            background: "#0A0A0A",
+            borderRadius: "999px",
+            opacity: 0,
+            pointerEvents: "none",
+            zIndex: 0,
+          }}
+        />
+
+        {LINKS.map(({ label, id }) => (
+          <a
+            key={id}
+            ref={(el) => {
+              linkRefs.current[id] = el;
+            }}
+            href={`#${id}`}
+            onClick={(e) => handleClick(e, id)}
+            onMouseEnter={() => setHoveredId(id)}
+            onMouseLeave={() => setHoveredId("")}
+            className="nav-link"
+            data-active={hoveredId === id}
+            style={{
+              position: "relative",
+              zIndex: 1,
+              fontFamily: "var(--font-jakarta), sans-serif",
+              fontSize: "12px",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              color: isHero ? "#AAAAAA" : navColors.pillContentText,
+              cursor: "pointer",
+              padding: "8px 18px",
+              borderRadius: "999px",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {label}
+          </a>
+        ))}
+      </nav>
+
+      {/* ── MOBILE HAMBURGER ── */}
+      <div
+        className="flex md:hidden"
+        style={{
+          position: "fixed",
+          top: "24px",
+          right: "clamp(24px, 6vw, 96px)",
+          zIndex: 1000,
+          ...sharedTransition,
+        }}
+      >
+        <button
+          onClick={() => setMobileMenu(!isMobileMenuOpen)}
+          aria-label="Toggle Menu"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "40px",
+            height: "40px",
+            background: isHero ? "transparent" : navColors.pillBg,
+            backdropFilter: isHero ? "none" : "blur(28px) saturate(180%)",
+            WebkitBackdropFilter: isHero ? "none" : "blur(28px) saturate(180%)",
+            border: isHero ? "1px solid transparent" : navColors.pillBorder,
+            boxShadow: isHero ? "none" : navColors.pillShadow,
+            borderRadius: "999px",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          <span
+            style={{
+              fontSize: isMobileMenuOpen ? "18px" : "16px",
+              color: isHero ? "#FFFFFF" : navColors.pillContentText,
+              lineHeight: 1,
+            }}
+          >
+            {isMobileMenuOpen ? "✕" : "☰"}
+          </span>
+        </button>
+      </div>
+
+      {/* ── MOBILE FULLSCREEN DROPDOWN ── */}
+      <div
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 999,
+          background: "rgba(10, 10, 10, 0.95)",
+          backdropFilter: "blur(20px)",
+          WebkitBackdropFilter: "blur(20px)",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "32px",
+          opacity: isMobileMenuOpen ? 1 : 0,
+          transform: isMobileMenuOpen ? "translateY(0)" : "translateY(-20px)",
+          transition: "opacity 0.3s ease, transform 0.3s ease",
+          pointerEvents: isMobileMenuOpen ? "auto" : "none",
+        }}
+      >
+        {LINKS.map(({ label, id }) => (
+          <a
+            key={id}
+            href={`#${id}`}
+            onClick={(e) => handleClick(e, id)}
+            style={{
+              fontFamily: "var(--font-jakarta), sans-serif",
+              fontSize: "20px",
+              fontWeight: 600,
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              textDecoration: "none",
+              color: "#FFFFFF",
+              paddingBottom: "2px",
+              cursor: "pointer",
+            }}
+          >
+            {label}
+          </a>
+        ))}
+      </div>
+    </>
+  );
+}

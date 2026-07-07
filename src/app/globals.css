@@ -1,0 +1,298 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f3f2ee; /* background utama, warm off-white */
+  --bg-card: #ffffff;
+  --text: #131311;
+  --text-muted: #8c8b87;
+  --accent: #1e4a34; /* deep forest green — warna utama brand */
+  --accent-mid: #2e7a55;
+  --accent-light: #bed8c8;
+  --gold: #b8924e; /* aksen sekunder */
+  --border: #e0ded9;
+
+  /* Font variables populated via layout.tsx */
+  --font-space-grotesk: 'Space Grotesk', sans-serif;
+  --font-jakarta: "Plus Jakarta Sans", sans-serif;
+  --font-anton: "Anton", sans-serif;
+}
+
+body {
+  font-family: var(--font-jakarta);
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+}
+
+/* Base custom font utility classes */
+.font-display {
+  font-family: var(--font-space-grotesk);
+}
+
+.font-body {
+  font-family: var(--font-jakarta);
+}
+
+/* Custom styles from portfolio-prototype.html */
+
+/* ======================== NAV ======================== */
+nav.scrolled {
+  background: #f3f2ee;
+  border-color: var(--border);
+}
+
+/* ======================== HERO ======================== */
+.clip-wrap {
+  overflow: hidden;
+  display: block;
+}
+
+.clip-inner {
+  display: block;
+  transform: translateY(108%);
+}
+.clip-inner.accent {
+  font-style: italic;
+  color: var(--accent);
+}
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes trackMove {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ======================== ABOUT ======================== */
+.about-eyebrow span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent-light);
+  display: block;
+  transform: translateY(120%);
+}
+
+.about-eyebrow-dash {
+  width: 44px;
+  height: 1px;
+  background: var(--accent-light);
+  flex-shrink: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.about-quote {
+  font-family: var(--font-space-grotesk);
+  font-size: clamp(26px, 3.2vw, 46px);
+  font-weight: 200;
+  font-style: italic;
+  line-height: 1.4;
+  color: rgba(243, 242, 238, 0.9);
+  font-variation-settings: "opsz" 72;
+}
+.about-quote em {
+  font-style: normal;
+  color: var(--accent-light);
+}
+
+.about-body {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 2;
+  color: rgba(243, 242, 238, 0.5);
+}
+.about-body p + p {
+  margin-top: 22px;
+}
+.about-body strong {
+  color: rgba(243, 242, 238, 0.85);
+  font-weight: 500;
+}
+
+/* ======================== SECTION COMMONS ======================== */
+.sec-eyebrow-text {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: block;
+  transform: translateY(120%);
+}
+
+.sec-eyebrow-dash {
+  width: 44px;
+  height: 1px;
+  background: var(--accent);
+  flex-shrink: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.sec-title {
+  font-family: var(--font-space-grotesk);
+  font-size: clamp(38px, 5.5vw, 72px);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  font-variation-settings: "opsz" 144;
+}
+.sec-title .clip-inner.muted {
+  color: var(--text-muted);
+}
+
+/* ======================== SKILLS ======================== */
+/* Styles now handled via inline in Skills.tsx */
+
+/* ======================== PROJECTS ======================== */
+
+/* ======================== CONTACT ======================== */
+.contact-eyebrow span {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(190, 216, 200, 0.8);
+  display: block;
+  transform: translateY(120%);
+}
+
+.contact-eyebrow-dash {
+  width: 44px;
+  height: 1px;
+  background: rgba(190, 216, 200, 0.4);
+  flex-shrink: 0;
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.contact-title {
+  font-family: var(--font-space-grotesk);
+  font-size: clamp(44px, 6.5vw, 96px);
+  font-weight: 200;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: white;
+  font-variation-settings: "opsz" 144;
+}
+
+.contact-sub {
+  font-size: 15px;
+  font-weight: 300;
+  line-height: 1.85;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.contact-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 36px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  transition:
+    background 0.3s,
+    border-color 0.3s,
+    color 0.3s;
+}
+.contact-email:hover {
+  background: white;
+  color: var(--accent);
+  border-color: white;
+}
+
+.soc-link {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: color 0.25s;
+}
+.soc-link:hover {
+  color: white;
+}
+
+/* ======================== FOOTER ======================== */
+.footer-name {
+  font-family: var(--font-space-grotesk);
+  font-size: 13px;
+  font-weight: 200;
+  color: rgba(243, 242, 238, 0.3);
+  font-variation-settings: "opsz" 9;
+}
+
+.footer-motto {
+  font-size: 11px;
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(243, 242, 238, 0.2);
+}
+
+/* ======================== SCROLLBAR ======================== */
+/* Default: scrollbar nyaris tak terlihat (blend ke background) */
+html {
+  scrollbar-width: thin; /* Firefox: track lebih tipis */
+  scrollbar-color: rgba(255, 255, 255, 0.08) transparent; /* Firefox: thumb transparan tipis */
+}
+
+/* Chrome, Edge, Safari (WebKit) */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  transition: background 0.25s ease;
+}
+
+/* Saat hover di area scrollbar ATAU saat halaman lagi di-scroll
+   (browser otomatis trigger :hover/:active di scrollbar pseudo-element) */
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+::-webkit-scrollbar-thumb:active {
+  background: rgba(125, 211, 252, 0.4); /* ice blue tipis saat aktif di-drag */
+}
+html {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/legacy Edge, untuk jaga-jaga */
+}
+
+/* Chrome, Edge, Safari (WebKit) */
+::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}

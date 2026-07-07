@@ -1,0 +1,294 @@
+"use client";
+
+import { useLayoutEffect, useRef } from "react";
+import gsap from "gsap";
+
+const NAME_WHITE = "Athallah";
+const NAME_ACCENT = "sy";
+
+const NUM_COLUMNS = 20;
+const PLANE_SIZE = 200;
+const PLANE_OUTSIDE_OFFSET = 400;
+const PLANE_FLY_DURATION = 2.4;
+const STAIRCASE_VERTICAL_LAG = 8;
+
+const COLUMN_REVEAL_HEIGHTS = Array.from({ length: NUM_COLUMNS }, (_, i) => {
+  const seed = Math.sin(i * 12.9898) * 43758.5453;
+  const rand = seed - Math.floor(seed);
+  return 60 + rand * 40;
+});
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+function generateStaircasePolygon(openColumns: number, isTop: boolean): string {
+  const colWidth = 100 / NUM_COLUMNS;
+  const points: string[] = [];
+
+  points.push(isTop ? "0% 0%" : "0% 100%");
+
+  for (let i = 0; i < NUM_COLUMNS; i++) {
+    const colStart = i * colWidth;
+    const colEnd = (i + 1) * colWidth;
+
+    const columnProgress = Math.min(
+      Math.max((openColumns - i) / STAIRCASE_VERTICAL_LAG, 0),
+      1,
+    );
+
+    const forcedProgress =
+      openColumns >= NUM_COLUMNS + STAIRCASE_VERTICAL_LAG ? 1 : columnProgress;
+
+    const easedProgress = easeInOutCubic(forcedProgress);
+    const shapeInfluence = COLUMN_REVEAL_HEIGHTS[i] / 100;
+    const shapedProgress =
+      forcedProgress < 1 ? easedProgress * shapeInfluence : 1;
+
+    const revealPercent = shapedProgress * 100;
+    const remainingBlack = 100 - revealPercent;
+    const yEdge = isTop ? remainingBlack : revealPercent;
+
+    points.push(`${colStart.toFixed(3)}% ${yEdge.toFixed(3)}%`);
+    points.push(`${colEnd.toFixed(3)}% ${yEdge.toFixed(3)}%`);
+  }
+
+  points.push(isTop ? "100% 0%" : "100% 100%");
+  return `polygon(${points.join(", ")})`;
+}
+
+export default function Splash({ onComplete }: { onComplete: () => void }) {
+  const textLayerRef = useRef<HTMLDivElement>(null);
+  const planeRef = useRef<HTMLImageElement>(null);
+  const bgTopRef = useRef<HTMLDivElement>(null);
+  const bgBottomRef = useRef<HTMLDivElement>(null);
+  const decoRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    document.body.style.overflow = "hidden";
+
+    const letters = textLayerRef.current?.querySelectorAll(".splash-letter");
+
+    gsap.set(letters ?? [], { y: "110%", opacity: 0 });
+    gsap.set(decoRef.current, { opacity: 0, scaleX: 0 });
+    gsap.set(planeRef.current, { left: `-${PLANE_OUTSIDE_OFFSET}px` });
+
+    gsap.set([bgTopRef.current, bgBottomRef.current], {
+      clipPath: "polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)",
+      opacity: 1,
+    });
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        document.body.style.overflow = "";
+        onComplete();
+      },
+    });
+
+    tl.to(letters ?? [], {
+      y: "0%",
+      opacity: 1,
+      duration: 0.9,
+      ease: "power4.out",
+      stagger: 0.04,
+    });
+
+    tl.to(
+      decoRef.current,
+      {
+        opacity: 1,
+        scaleX: 1,
+        duration: 0.5,
+        ease: "power2.out",
+        transformOrigin: "left",
+      },
+      "-=0.3",
+    );
+
+    tl.to({}, { duration: 0.6 });
+
+    tl.to([textLayerRef.current, decoRef.current], {
+      opacity: 0,
+      duration: 0.35,
+      ease: "power2.in",
+    });
+
+    tl.to(
+      planeRef.current,
+      {
+        left: `calc(100% + ${PLANE_OUTSIDE_OFFSET}px)`,
+        duration: PLANE_FLY_DURATION,
+        ease: "power1.inOut",
+        onUpdate: () => {
+          const plane = planeRef.current;
+          if (!plane) return;
+
+          const rect = plane.getBoundingClientRect();
+          const viewportWidth = window.innerWidth;
+
+          // Pakai rect.right biar progress ngikutin ujung depan pesawat
+          const rawProgress = Math.min(
+            Math.max((rect.left - 50) / viewportWidth, 0),
+            1,
+          );
+
+          const openColumns =
+            rawProgress >= 1
+              ? NUM_COLUMNS + STAIRCASE_VERTICAL_LAG
+              : rawProgress * NUM_COLUMNS;
+
+          if (bgTopRef.current) {
+            bgTopRef.current.style.clipPath = generateStaircasePolygon(
+              openColumns,
+              true,
+            );
+          }
+          if (bgBottomRef.current) {
+            bgBottomRef.current.style.clipPath = generateStaircasePolygon(
+              openColumns,
+              false,
+            );
+          }
+        },
+      },
+      "fly",
+    );
+
+    // Fade out dihapus — tirai hilang natural karena clipPath udah 100% terbuka
+
+    return () => {
+      tl.kill();
+      document.body.style.overflow = "";
+    };
+  }, [onComplete]);
+
+  return (
+    <>
+      <div
+        ref={bgTopRef}
+        style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100%",
+          height: "50%",
+          zIndex: 9997,
+          background: "#080808",
+          pointerEvents: "none",
+          transformOrigin: "bottom center",
+        }}
+      />
+
+      <div
+        ref={bgBottomRef}
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: 0,
+          width: "100%",
+          height: "50%",
+          zIndex: 9997,
+          background: "#080808",
+          pointerEvents: "none",
+          transformOrigin: "top center",
+        }}
+      />
+
+      <div
+        ref={textLayerRef}
+        style={{
+          position: "fixed",
+          inset: 0,
+          zIndex: 9998,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "16px",
+          pointerEvents: "none",
+          background: "transparent",
+        }}
+      >
+        <div style={{ overflow: "hidden", display: "flex" }}>
+          {NAME_WHITE.split("").map((char, i) => (
+            <span
+              key={`w-${i}`}
+              className="splash-letter"
+              style={{
+                display: "inline-block",
+                fontFamily: "var(--font-anton)",
+                fontSize: "clamp(40px, 7vw, 80px)",
+                color: "#ffffff",
+                lineHeight: 1,
+                transform: "translateY(110%)",
+                opacity: 0,
+              }}
+            >
+              {char}
+            </span>
+          ))}
+
+          {NAME_ACCENT.split("").map((char, i) => (
+            <span
+              key={`a-${i}`}
+              className="splash-letter"
+              style={{
+                display: "inline-block",
+                fontFamily: "var(--font-anton)",
+                fontSize: "clamp(40px, 7vw, 80px)",
+                color: "#7DD3FC",
+                lineHeight: 1,
+                transform: "translateY(110%)",
+                opacity: 0,
+              }}
+            >
+              {char}
+            </span>
+          ))}
+        </div>
+
+        <div
+          ref={decoRef}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            opacity: 0,
+          }}
+        >
+          <div
+            style={{ width: "44px", height: "1px", background: "#7DD3FC" }}
+          />
+          <span
+            style={{
+              width: "6px",
+              height: "6px",
+              borderRadius: "50%",
+              background: "#7DD3FC",
+              display: "inline-block",
+            }}
+          />
+        </div>
+      </div>
+
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={planeRef}
+        src="/images/pesawat.svg"
+        alt=""
+        aria-hidden
+        style={{
+          position: "fixed",
+          top: "50%",
+          left: `-${PLANE_OUTSIDE_OFFSET}px`,
+          width: `${PLANE_SIZE}px`,
+          height: `${PLANE_SIZE}px`,
+          transform: "translateY(-50%)",
+          zIndex: 9999,
+          filter: "brightness(0) invert(1)",
+          pointerEvents: "none",
+        }}
+      />
+    </>
+  );
+}
