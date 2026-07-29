@@ -33,76 +33,142 @@ export default function Skills() {
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
-    const triggers: ReturnType<typeof ScrollTrigger.create>[] = [];
-    const timelines: gsap.core.Timeline[] = [];
+    const mm = gsap.matchMedia();
 
-    // --- Badge + heading + desc: scrubbed individually ---
-    const badge = document.querySelector<HTMLElement>("#skills .ts-badge");
-    const headingLines = Array.from(
-      document.querySelectorAll<HTMLElement>("#skills .ts-heading-line")
-    );
-    const desc = document.querySelector<HTMLElement>("#skills .ts-desc");
-
-    // Left-column header — one shared scrubbed timeline
-    const headerTl = gsap.timeline({
-      scrollTrigger: {
+    mm.add("(min-width: 1024px)", () => {
+      // Pin #skills at top top until #projects overlays it
+      ScrollTrigger.create({
         trigger: "#skills",
-        start: "top 85%",
-        end: "top 55%",
-        scrub: 0.8,
-      },
-    });
-    if (badge) {
-      gsap.set(badge, { opacity: 0, y: 24 });
-      headerTl.to(badge, { opacity: 1, y: 0, ease: "power2.out" }, 0);
-    }
-    headingLines.forEach((line, i) => {
-      gsap.set(line, { opacity: 0, y: 60 });
-      headerTl.to(line, { opacity: 1, y: 0, ease: "power3.out" }, i * 0.12);
-    });
-    if (desc) {
-      gsap.set(desc, { opacity: 0, y: 28 });
-      headerTl.to(desc, { opacity: 1, y: 0, ease: "power2.out" }, 0.25);
-    }
-    timelines.push(headerTl);
+        start: "top top",
+        endTrigger: "#projects",
+        end: "top top",
+        pin: true,
+        pinSpacing: false,
+        invalidateOnRefresh: true,
+      });
 
-    // --- 9 grid items: single timeline with stagger, scrubbed ---
-    const items = Array.from(
-      document.querySelectorAll<HTMLElement>("#skills .ts-item")
-    );
-    const grid = document.querySelector<HTMLElement>("#skills .ts-grid");
+      const badge = document.querySelector<HTMLElement>("#skills .ts-badge");
+      const headingLines = Array.from(
+        document.querySelectorAll<HTMLElement>("#skills .ts-heading-line")
+      );
+      const desc = document.querySelector<HTMLElement>("#skills .ts-desc");
 
-    if (grid && items.length) {
-      gsap.set(items, { opacity: 0, y: 24 });
-
-      const gridTl = gsap.timeline({
+      const headerTl = gsap.timeline({
         scrollTrigger: {
-          trigger: grid,
-          start: "top 80%",
-          end: "top 40%",
-          scrub: 0.6,   // slight smoothing — follows scroll but with subtle lag
+          trigger: "#skills",
+          start: "top 85%",
+          end: "top 55%",
+          scrub: 0.8,
         },
       });
-
-      // Add each item sequentially with stagger offset
-      items.forEach((item, i) => {
-        gridTl.to(
-          item,
-          { opacity: 1, y: 0, ease: "power2.out", duration: 0.4 },
-          i * 0.15   // stagger: item 01 leads, 09 trails
-        );
+      if (badge) {
+        gsap.set(badge, { opacity: 0, y: 24 });
+        headerTl.to(badge, { opacity: 1, y: 0, ease: "power2.out" }, 0);
+      }
+      headingLines.forEach((line, i) => {
+        gsap.set(line, { opacity: 0, y: 60 });
+        headerTl.to(line, { opacity: 1, y: 0, ease: "power3.out" }, i * 0.12);
       });
+      if (desc) {
+        gsap.set(desc, { opacity: 0, y: 28 });
+        headerTl.to(desc, { opacity: 1, y: 0, ease: "power2.out" }, 0.25);
+      }
 
-      timelines.push(gridTl);
-    }
+      const items = Array.from(
+        document.querySelectorAll<HTMLElement>("#skills .ts-item")
+      );
+      const grid = document.querySelector<HTMLElement>("#skills .ts-grid");
 
-    const onResize = () => ScrollTrigger.refresh();
+      if (grid && items.length) {
+        gsap.set(items, { opacity: 0, y: 24 });
+
+        const gridTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: grid,
+            start: "top 80%",
+            end: "top 40%",
+            scrub: 0.6,
+          },
+        });
+
+        items.forEach((item, i) => {
+          gridTl.to(
+            item,
+            { opacity: 1, y: 0, ease: "power2.out", duration: 0.4 },
+            i * 0.15
+          );
+        });
+      }
+    });
+
+    mm.add("(max-width: 1023px)", () => {
+      const badge = document.querySelector<HTMLElement>("#skills .ts-badge");
+      const headingLines = Array.from(
+        document.querySelectorAll<HTMLElement>("#skills .ts-heading-line")
+      );
+      const desc = document.querySelector<HTMLElement>("#skills .ts-desc");
+
+      const headerTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: "#skills",
+          start: "top 85%",
+          end: "top 55%",
+          scrub: 0.8,
+        },
+      });
+      if (badge) {
+        gsap.set(badge, { opacity: 0, y: 24 });
+        headerTl.to(badge, { opacity: 1, y: 0, ease: "power2.out" }, 0);
+      }
+      headingLines.forEach((line, i) => {
+        gsap.set(line, { opacity: 0, y: 60 });
+        headerTl.to(line, { opacity: 1, y: 0, ease: "power3.out" }, i * 0.12);
+      });
+      if (desc) {
+        gsap.set(desc, { opacity: 0, y: 28 });
+        headerTl.to(desc, { opacity: 1, y: 0, ease: "power2.out" }, 0.25);
+      }
+
+      const items = Array.from(
+        document.querySelectorAll<HTMLElement>("#skills .ts-item")
+      );
+      const grid = document.querySelector<HTMLElement>("#skills .ts-grid");
+
+      if (grid && items.length) {
+        gsap.set(items, { opacity: 0, y: 24 });
+
+        const gridTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: grid,
+            start: "top 80%",
+            end: "top 40%",
+            scrub: 0.6,
+          },
+        });
+
+        items.forEach((item, i) => {
+          gridTl.to(
+            item,
+            { opacity: 1, y: 0, ease: "power2.out", duration: 0.4 },
+            i * 0.15
+          );
+        });
+      }
+    });
+
+    let resizeTimer: NodeJS.Timeout;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 200);
+    };
     window.addEventListener("resize", onResize);
 
     return () => {
-      timelines.forEach((tl) => tl.kill());
-      triggers.forEach((t) => t.kill());
+      clearTimeout(resizeTimer);
       window.removeEventListener("resize", onResize);
+      mm.revert();
     };
   }, []);
 
@@ -110,6 +176,7 @@ export default function Skills() {
     <section
       id="skills"
       ref={sectionRef}
+      className="lg:h-screen lg:flex lg:flex-col lg:justify-center"
       style={{
         background: "#080808",
         padding: "120px 64px",
