@@ -47,6 +47,7 @@ interface LanyardProps {
   lanyardImage?: string | null;
   lanyardWidth?: number;
   startEntrance?: boolean;
+  reduceMotion?: boolean;
 }
 
 export default function Lanyard({
@@ -60,6 +61,7 @@ export default function Lanyard({
   lanyardImage = null,
   lanyardWidth = 1,
   startEntrance = false,
+  reduceMotion = false,
 }: LanyardProps) {
   const [isMobile, setIsMobile] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -77,7 +79,10 @@ export default function Lanyard({
     : [0, 0, posZ];
 
   return (
-    <div className={`w-full h-full relative ${isDragging ? "touch-none" : ""}`} style={{ minHeight: "400px" }}>
+    <div
+      className={`w-full h-full relative ${isDragging ? "touch-none" : ""}`}
+      style={{ minHeight: "400px" }}
+    >
       <Canvas
         camera={{ position: camPos, fov: fov }}
         dpr={[1, isMobile ? 1.2 : 1.5]}
@@ -99,6 +104,7 @@ export default function Lanyard({
             posX={posX}
             posY={posY}
             startEntrance={startEntrance}
+            reduceMotion={reduceMotion}
           />
         </Physics>
         <Environment blur={0.75}>
@@ -149,6 +155,7 @@ interface BandProps {
   posX?: number;
   posY?: number;
   startEntrance?: boolean;
+  reduceMotion?: boolean;
 }
 
 function Band({
@@ -164,6 +171,7 @@ function Band({
   posX = 2.0,
   posY = 1.3,
   startEntrance = false,
+  reduceMotion = false,
 }: BandProps) {
   const band = useRef<any>(null);
   const fixed = useRef<any>(null);
@@ -179,20 +187,33 @@ function Band({
 
   useEffect(() => {
     if (startEntrance) {
-      gsap.to(entranceRef.current, {
-        y: 0,
-        duration: 1.0,
-        ease: "power2.in", // Sekali jatuh langsung ke bawah tanpa memantul
-        onComplete: () => setEntranceDone(true),
-      });
+      if (reduceMotion) {
+        // Skip the drop animation entirely — land at rest position at once.
+        entranceRef.current.y = 0;
+        setEntranceDone(true);
+      } else {
+        gsap.to(entranceRef.current, {
+          y: 0,
+          duration: 1.0,
+          ease: "power2.in", // Sekali jatuh langsung ke bawah tanpa memantul
+          onComplete: () => setEntranceDone(true),
+        });
+      }
     }
-  }, [startEntrance]);
+  }, [startEntrance, reduceMotion]);
 
   useEffect(() => {
-    if (entranceDone && isMobile && card.current) {
-      card.current.applyImpulse({ x: 0.3, y: 0, z: 0.1 }, true);
+    if (entranceDone && !reduceMotion && card.current) {
+      // Previously this only fired on mobile — on desktop the card became a
+      // dynamic body with zero velocity right after the scripted drop, so it
+      // just hung there dead-still instead of settling naturally. Give both
+      // a landing impulse (+ a touch of spin) so the rope physics take over
+      // and it swings/settles like something that actually just fell.
+      const impulseStrength = isMobile ? 0.3 : 0.45;
+      card.current.applyImpulse({ x: impulseStrength, y: 0, z: 0.1 }, true);
+      card.current.applyTorqueImpulse({ x: 0, y: 0.05, z: 0.035 }, true);
     }
-  }, [entranceDone, isMobile]);
+  }, [entranceDone, isMobile, reduceMotion]);
 
   const vec = new THREE.Vector3();
   const ang = new THREE.Vector3();
@@ -335,8 +356,6 @@ function Band({
       });
     }
 
-
-
     if (fixed.current) {
       [j1, j2, j3, j4].forEach((ref) => {
         if (!ref.current.lerped)
@@ -382,11 +401,7 @@ function Band({
   return (
     <>
       <group
-        position={[
-          0,
-          isMobile ? 5 : posY !== undefined ? posY + 2.5 : 3.8,
-          0,
-        ]}
+        position={[0, isMobile ? 5 : posY !== undefined ? posY + 2.5 : 3.8, 0]}
       >
         <RigidBody ref={fixed} {...segmentProps} type="fixed" />
 

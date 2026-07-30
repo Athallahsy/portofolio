@@ -5,7 +5,22 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
 
-const FEATURED_PROJECTS = [
+type Aspect = "landscape" | "portrait";
+
+type Project = {
+  num: string;
+  title: string;
+  badge: string;
+  tags: string[];
+  desc: string;
+  screenshot: string;
+  aspect: Aspect;
+  rotation: string;
+  liveLink?: string;
+  githubLink?: string;
+};
+
+const FEATURED_PROJECTS: Project[] = [
   {
     num: "01",
     title: "Finote",
@@ -38,6 +53,7 @@ const FEATURED_PROJECTS = [
     screenshot: "/images/ayamku.png",
     aspect: "portrait",
     rotation: "-rotate-2",
+    githubLink: "https://github.com/Athallahsy/AyamKu",
   },
   {
     num: "04",
@@ -63,6 +79,21 @@ const FEATURED_PROJECTS = [
   },
 ];
 
+const ARCHIVE_PROJECTS = [
+  {
+    title: "Inkwell",
+    desc: "Blog platform with role-based auth & editorial UI. Laravel · Breeze · MySQL · Blade",
+    href: "https://github.com/Athallahsy/inkwell",
+    label: "github.com/Athallahsy/inkwell",
+  },
+  {
+    title: "Portfolio",
+    desc: "This website. React · Tailwind CSS · Three.js · GSAP",
+    href: "https://portofolio-eight-vert.vercel.app",
+    label: "portofolio-eight-vert.vercel.app",
+  },
+];
+
 // SVG Variant A: Round / Chubby Cloud
 function CloudVariantA({ className }: { className?: string }) {
   return (
@@ -81,12 +112,39 @@ function CloudVariantB({ className }: { className?: string }) {
   );
 }
 
+// Small pill/chip used for the status badge and the tech tags.
+// Keeping this as one component means every badge/tag on the section
+// shares the exact same radius, padding and type scale.
+function Chip({
+  children,
+  tone = "solid",
+}: {
+  children: React.ReactNode;
+  tone?: "accent" | "solid";
+}) {
+  const base =
+    "inline-flex items-center whitespace-nowrap rounded-full text-[11px] font-semibold";
+  const toneClass =
+    tone === "accent"
+      ? "px-3 py-1 border border-[#7DD3FC] text-[#0088CC] uppercase tracking-[0.06em]"
+      : "tag-chip px-2.5 py-1 border border-[#E2E2E2] bg-white text-[#3A3A3A]";
+  return (
+    <span
+      className={`${base} ${toneClass}`}
+      style={{ fontFamily: "var(--font-jakarta)" }}
+    >
+      {children}
+    </span>
+  );
+}
+
 export default function Projects() {
   const containerRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const cloudsRef = useRef<HTMLDivElement>(null);
   const airplaneRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const watermarkRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger, MotionPathPlugin);
@@ -179,13 +237,13 @@ export default function Projects() {
         const containerHeight = container.offsetHeight || window.innerHeight;
         if (!cards.length) return [];
 
-        const centerY = containerHeight * 0.5; // ← PUSAT TENGAH
-        const waveAmplitude = containerHeight * 0.25; // ← ±25% amplitudo
+        const centerY = containerHeight * 0.5; // ← center vertically
+        const waveAmplitude = containerHeight * 0.25; // ← ±25% amplitude
 
         const points: PathPoint[] = [
           {
             x: -100 - planeOffset,
-            y: centerY - planeOffset, // ← Mulai dari tengah
+            y: centerY - planeOffset, // ← start centered
           },
         ];
 
@@ -194,7 +252,7 @@ export default function Projects() {
           const cardWidth = card.offsetWidth;
           const centerX = cardLeft + cardWidth * 0.5;
 
-          // Gelombang dengan pusat di 50% tinggi layar
+          // Wave centered at 50% viewport height
           const y = centerY + Math.sin(i * 1.2) * waveAmplitude;
 
           points.push({
@@ -210,7 +268,7 @@ export default function Projects() {
             : track.scrollWidth) + 800;
         points.push({
           x: endX - planeOffset,
-          y: centerY - planeOffset, // ← Akhir di tengah
+          y: centerY - planeOffset, // ← end centered
         });
 
         return points;
@@ -250,7 +308,7 @@ export default function Projects() {
         0,
       );
 
-      // 2. Cloud Parallax Layer (0.4x speed for background depth across entire track width)
+      // 2. Cloud parallax layer (0.4x speed) across the full track width
       if (cloudsRef.current) {
         mainTl.to(
           cloudsRef.current,
@@ -263,15 +321,29 @@ export default function Projects() {
         );
       }
 
+      // 2b. WORK watermark drifts even slower (0.12x) so the whole section
+      // reads as layered depth rather than a static background label.
+      if (watermarkRef.current) {
+        mainTl.to(
+          watermarkRef.current,
+          {
+            x: () => -(track.scrollWidth - window.innerWidth) * 0.12,
+            ease: "none",
+            duration: 1,
+          },
+          0,
+        );
+      }
+
       // 3. Parallax shift inside each card screenshot
       const cardImages = Array.from(
         document.querySelectorAll<HTMLElement>(".card-image-parallax"),
       );
       cardImages.forEach((img) => {
-        mainTl.fromTo(img, { x: 30 }, { x: -30, ease: "none", duration: 1 }, 0);
+        mainTl.fromTo(img, { x: 20 }, { x: -20, ease: "none", duration: 1 }, 0);
       });
 
-      // 4. Airplane motion path (z-10, behind cards at z-20) synchronized to scroll
+      // 4. Airplane motion path (z-10, behind cards at z-20) synced to scroll
       if (airplaneRef.current && points.length) {
         mainTl.to(
           airplaneRef.current,
@@ -302,6 +374,32 @@ export default function Projects() {
           0,
         );
       }
+
+      // 5. Tag chips stagger in as each card scrolls into view, tied to the
+      // horizontal scroll position instead of vertical viewport entry.
+      document
+        .querySelectorAll<HTMLElement>(".featured-project-card")
+        .forEach((card) => {
+          const chips = card.querySelectorAll<HTMLElement>(".tag-chip");
+          if (!chips.length) return;
+          gsap.fromTo(
+            chips,
+            { opacity: 0, y: 8 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+              ease: "power2.out",
+              stagger: 0.06,
+              scrollTrigger: {
+                containerAnimation: mainTl,
+                trigger: card,
+                start: "left 75%",
+                toggleActions: "play none none reverse",
+              },
+            },
+          );
+        });
     });
 
     mm.add("(max-width: 1023px)", () => {
@@ -323,10 +421,33 @@ export default function Projects() {
             },
           );
         });
+
+      // Same tag stagger, but tied to normal vertical scroll on mobile.
+      document
+        .querySelectorAll<HTMLElement>(".featured-project-card")
+        .forEach((card) => {
+          const chips = card.querySelectorAll<HTMLElement>(".tag-chip");
+          if (!chips.length) return;
+          gsap.fromTo(
+            chips,
+            { opacity: 0, y: 8 },
+            {
+              opacity: 1,
+              y: 0,
+              duration: 0.5,
+              ease: "power2.out",
+              stagger: 0.06,
+              scrollTrigger: {
+                trigger: card,
+                start: "top 75%",
+              },
+            },
+          );
+        });
     });
 
     // Debounced window resize handler (200ms)
-    let resizeTimer: NodeJS.Timeout;
+    let resizeTimer: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
@@ -359,6 +480,7 @@ export default function Projects() {
       {/* Watermark WORK (z-0) */}
       <span
         aria-hidden
+        ref={watermarkRef}
         style={{
           position: "absolute",
           top: "10%",
@@ -384,43 +506,32 @@ export default function Projects() {
         className="w-full lg:h-full lg:flex lg:items-center lg:px-20 lg:gap-16 lg:w-max py-28 lg:py-0 px-6 max-w-[1200px] lg:max-w-none mx-auto lg:mx-0 relative z-10"
         style={{ willChange: "transform" }}
       >
-        {/* Cloud Parallax Layer (z-5: evenly distributed across full track width, 2 shape variants) */}
+        {/* Cloud parallax layer (z-5) */}
         <div
           ref={cloudsRef}
           className="hidden lg:block pointer-events-none absolute top-0 left-0 h-full z-5 overflow-hidden"
           style={{ willChange: "transform" }}
         >
-          {/* Cloud 1 - Variant A */}
           <CloudVariantA className="absolute top-[12%] left-[4%] w-[180px] h-[60px] opacity-30 text-[#7DD3FC]" />
-          {/* Cloud 2 - Variant B */}
           <CloudVariantB className="absolute top-[68%] left-[13%] w-[240px] h-[75px] opacity-25 text-[#38BDF8]" />
-          {/* Cloud 3 - Variant A */}
           <CloudVariantA className="absolute top-[18%] left-[22%] w-[200px] h-[65px] opacity-35 text-[#7DD3FC]" />
-          {/* Cloud 4 - Variant B */}
           <CloudVariantB className="absolute top-[72%] left-[31%] w-[220px] h-[70px] opacity-20 text-[#38BDF8]" />
-          {/* Cloud 5 - Variant A */}
           <CloudVariantA className="absolute top-[14%] left-[40%] w-[190px] h-[60px] opacity-30 text-[#7DD3FC]" />
-          {/* Cloud 6 - Variant B */}
           <CloudVariantB className="absolute top-[65%] left-[49%] w-[250px] h-[80px] opacity-25 text-[#38BDF8]" />
-          {/* Cloud 7 - Variant A */}
           <CloudVariantA className="absolute top-[20%] left-[58%] w-[210px] h-[68px] opacity-35 text-[#7DD3FC]" />
-          {/* Cloud 8 - Variant B */}
           <CloudVariantB className="absolute top-[70%] left-[67%] w-[230px] h-[72px] opacity-20 text-[#38BDF8]" />
-          {/* Cloud 9 - Variant A */}
           <CloudVariantA className="absolute top-[15%] left-[76%] w-[185px] h-[62px] opacity-30 text-[#7DD3FC]" />
-          {/* Cloud 10 - Variant B */}
           <CloudVariantB className="absolute top-[66%] left-[85%] w-[245px] h-[78px] opacity-25 text-[#38BDF8]" />
-          {/* Cloud 11 - Variant A */}
           <CloudVariantA className="absolute top-[18%] left-[94%] w-[205px] h-[66px] opacity-35 text-[#7DD3FC]" />
         </div>
 
-        {/* Trail Canvas Overlay (z-10: BEHIND cards at z-20) */}
+        {/* Trail canvas overlay (z-10: behind cards at z-20) */}
         <canvas
           ref={canvasRef}
           className="hidden lg:block pointer-events-none absolute top-0 left-0 z-10"
         />
 
-        {/* Airplane SVG (z-10: BEHIND cards at z-20) */}
+        {/* Airplane SVG (z-10: behind cards at z-20) */}
         <div
           ref={airplaneRef}
           className="hidden lg:block pointer-events-none absolute top-0 left-0 w-[120px] h-[120px] z-10"
@@ -432,7 +543,7 @@ export default function Projects() {
           />
         </div>
 
-        {/* Header Block (z-20: on top of airplane and smoke trail) */}
+        {/* Header block (z-20) */}
         <div className="sec-inner mb-16 lg:mb-0 lg:flex-shrink-0 lg:w-[360px] lg:pr-8 relative z-20">
           <div className="sec-eyebrow flex items-center gap-4 mb-5 overflow-hidden">
             <span
@@ -479,145 +590,104 @@ export default function Projects() {
           </h2>
         </div>
 
-        {/* Projects Cards List (z-20: on top of airplane and smoke trail) */}
-        <div className="flex flex-col gap-24 lg:flex-row lg:gap-16 lg:items-center relative z-20">
+        {/* Projects cards list (z-20) */}
+        <div className="flex flex-col gap-24 lg:flex-row lg:gap-20 lg:items-center relative z-20">
           {FEATURED_PROJECTS.map((proj) => {
             const isPortrait = proj.aspect === "portrait";
-
             return (
               <div
                 key={proj.num}
-                className="featured-project-row featured-project-card grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center bg-white lg:bg-transparent p-6 lg:p-0 rounded-2xl lg:rounded-none border border-[#E5E5E5] lg:border-none shadow-sm lg:shadow-none lg:flex-shrink-0 lg:w-[820px]"
+                className="featured-project-row featured-project-card grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center bg-transparent p-0 lg:flex-shrink-0 lg:w-[920px]"
               >
-                {/* Info Column (Always Left) */}
-                <div className="flex flex-col lg:order-1">
-                  {/* Number & Badge */}
-                  <div className="flex items-center gap-4 mb-3">
-                    <span
-                      style={{
-                        fontFamily: "var(--font-jakarta)",
-                        fontSize: 14,
-                        fontWeight: 700,
-                        color: "#0088CC",
-                        flexShrink: 0,
-                      }}
-                    >
-                      {proj.num}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 600,
-                        letterSpacing: "0.08em",
-                        textTransform: "uppercase",
-                        padding: "3px 8px",
-                        border: "1px solid #7DD3FC",
-                        borderRadius: "4px",
-                        color: "#0088CC",
-                        fontFamily: "var(--font-jakarta)",
-                        wordBreak: "break-word",
-                        overflowWrap: "anywhere",
-                      }}
-                    >
-                      {proj.badge}
-                    </span>
-                  </div>
-
-                  {/* Title */}
-                  <h3
-                    style={{
-                      fontFamily: "var(--font-jakarta)",
-                      fontSize: "clamp(24px, 2.5vw, 32px)",
-                      fontWeight: 800,
-                      color: "#0A0A0A",
-                      marginBottom: 12,
-                    }}
-                  >
-                    {proj.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p
-                    style={{
-                      fontFamily: "var(--font-jakarta)",
-                      fontSize: 14,
-                      fontWeight: 400,
-                      lineHeight: 1.7,
-                      color: "#4A4A4A",
-                      marginBottom: 20,
-                      whiteSpace: "pre-line",
-                    }}
-                  >
-                    {proj.desc}
-                  </p>
-
-                  {/* Tags */}
-                  <div className="flex flex-wrap gap-2 mb-6">
-                    {proj.tags.map((tag) => (
+                {/* Info column */}
+                <div
+                  className="flex flex-col justify-center lg:order-1 py-2"
+                  style={{ fontFamily: "var(--font-jakarta)" }}
+                >
+                  <div>
+                    {/* Number sits as a large faded mark behind the badge —
+                        decorative sequence marker, not a data label. */}
+                    <div className="relative mb-1 inline-block">
                       <span
-                        key={tag}
-                        style={{
-                          fontSize: 11,
-                          fontWeight: 500,
-                          padding: "4px 10px",
-                          background: "#FFFFFF",
-                          border: "1px solid #D0D0D0",
-                          borderRadius: "6px",
-                          color: "#333333",
-                          fontFamily: "var(--font-jakarta)",
-                        }}
+                        aria-hidden
+                        className="pointer-events-none absolute -left-1 -top-4 select-none text-4xl font-black leading-none text-black/[0.07] md:text-5xl"
                       >
-                        {tag}
+                        {proj.num}
                       </span>
-                    ))}
+                      <div className="relative pt-2">
+                        <Chip tone="accent">{proj.badge}</Chip>
+                      </div>
+                    </div>
+
+                    {/* Title */}
+                    <h3
+                      className="mb-4 font-extrabold leading-tight"
+                      style={{
+                        fontSize: "clamp(24px, 2.5vw, 32px)",
+                        color: "#0A0A0A",
+                      }}
+                    >
+                      {proj.title}
+                    </h3>
+
+                    {/* Description */}
+                    <p
+                      className="mb-6 whitespace-pre-line text-sm leading-[1.7]"
+                      style={{ color: "#4A4A4A" }}
+                    >
+                      {proj.desc}
+                    </p>
+
+                    {/* Tags */}
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {proj.tags.map((tag) => (
+                        <Chip key={tag}>{tag}</Chip>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Links */}
-                  <div className="flex items-center gap-6">
-                    {"liveLink" in proj && (
+                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
+                    {proj.liveLink && (
                       <a
                         href={proj.liveLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-semibold hover:text-[#0088CC] transition-colors"
-                        style={{ color: "#333333" }}
+                        className="text-sm font-semibold text-[#333333] transition-colors hover:text-[#0088CC]"
                       >
-                        Visit Website ↗
+                        Visit website ↗
                       </a>
                     )}
-                    {"githubLink" in proj && (
+                    {proj.githubLink && (
                       <a
                         href={proj.githubLink}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm font-semibold hover:text-[#0088CC] transition-colors"
-                        style={{ color: "#333333" }}
+                        className="text-sm font-semibold text-[#333333] transition-colors hover:text-[#0088CC]"
                       >
-                        GitHub Repository ↗
+                        GitHub repository ↗
                       </a>
                     )}
                   </div>
                 </div>
 
-                {/* Photo Column (Always Right) */}
-                <div className="flex justify-center lg:order-2">
+                {/* Photo column — a "pinned photo" card, tilted per-project via
+                    `rotation`, straightens on hover; aspect ratio follows the
+                    project's real screenshot orientation instead of a fixed box. */}
+                <div className="flex items-center justify-center lg:order-2 w-full">
                   <div
-                    className={`polaroid-card bg-white p-4 pb-10 border border-[#E5E5E5] rounded-xl shadow-md transition-all duration-300 ease-out hover:rotate-0 hover:scale-[1.03] hover:shadow-xl ${proj.rotation}`}
-                    style={{
-                      width: "100%",
-                      maxWidth: isPortrait ? "290px" : "440px",
-                    }}
+                    className={`group relative w-full ${
+                      isPortrait
+                        ? "max-w-[260px] aspect-[3/4]"
+                        : "max-w-[480px] aspect-[4/3]"
+                    } rounded-2xl border border-black/10 bg-white p-3 shadow-[0_10px_30px_rgba(10,10,10,0.08)] transition-transform duration-500 ease-out ${proj.rotation} hover:rotate-0 hover:shadow-[0_16px_40px_rgba(10,10,10,0.12)]`}
                   >
-                    <div
-                      className={`overflow-hidden rounded-lg bg-gray-100 ${
-                        isPortrait ? "aspect-[3/4]" : "aspect-[16/10]"
-                      }`}
-                    >
+                    <div className="relative h-full w-full overflow-hidden rounded-xl bg-[#F3F3F3]">
                       <img
                         src={proj.screenshot}
                         alt={proj.title}
                         onLoad={() => ScrollTrigger.refresh()}
-                        className="card-image-parallax w-full h-full object-cover scale-[1.12]"
+                        className="card-image-parallax h-full w-full object-contain"
                         style={{ willChange: "transform" }}
                       />
                     </div>
@@ -628,64 +698,52 @@ export default function Projects() {
           })}
         </div>
 
-        {/* Archive Section (z-20: on top of airplane and smoke trail) */}
+        {/* Archive section (z-20) */}
         <div
-          className="mt-20 lg:mt-0 pt-12 lg:pt-0 lg:pl-12 lg:border-l lg:border-[#E0E0E0] border-t border-[#E0E0E0] lg:border-t-0 lg:flex-shrink-0 lg:w-[480px] relative z-20"
-          style={{
-            fontFamily: "var(--font-jakarta)",
-          }}
+          className="mt-20 lg:mt-0 pt-12 lg:pt-0 lg:pl-12 lg:border-l lg:border-[#E0E0E0] border-t border-[#E0E0E0] lg:border-t-0 lg:flex-shrink-0 lg:w-[420px] relative z-20"
+          style={{ fontFamily: "var(--font-jakarta)" }}
         >
           <span
-            style={{
-              display: "block",
-              fontSize: 11,
-              fontWeight: 700,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#888888",
-              marginBottom: 20,
-            }}
+            className="mb-5 block text-[11px] font-bold uppercase tracking-[0.2em]"
+            style={{ color: "#888888" }}
           >
             // Also built
           </span>
 
-          <div className="flex flex-col gap-6">
-            {/* Item 1 */}
-            <div className="flex flex-col gap-1 py-3 border-b border-[#F0F0F0]">
-              <span className="font-bold text-[#0A0A0A] text-lg">Inkwell</span>
-              <span className="text-sm text-[#666666] mb-2">
-                Blog platform with role-based auth & editorial UI. Laravel ·
-                Breeze · MySQL · Blade
-              </span>
+          <div className="flex flex-col">
+            {ARCHIVE_PROJECTS.map((item) => (
               <a
-                href="https://github.com/Athallahsy/inkwell"
+                key={item.title}
+                href={item.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-semibold hover:text-[#7DD3FC] transition-colors self-start"
-                style={{ color: "#888888" }}
+                className="group flex items-start gap-4 border-b border-[#F0F0F0] py-4 first:pt-0 last:border-b-0"
               >
-                github.com/Athallahsy/inkwell ↗
+                {/* Monogram thumbnail — echoes the photo column on the
+                    featured cards above so this list reads as part of the
+                    same system, not a plain leftover text block. */}
+                <span
+                  aria-hidden
+                  className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl border border-[#E2E2E2] bg-white text-lg font-extrabold text-[#0088CC] transition-colors group-hover:border-[#7DD3FC]"
+                >
+                  {item.title.charAt(0)}
+                </span>
+                <span className="flex flex-1 flex-col gap-1.5 pt-0.5">
+                  <span className="flex items-center justify-between text-lg font-bold text-[#0A0A0A]">
+                    {item.title}
+                    <span className="text-sm font-semibold text-[#B0B0B0] transition-colors group-hover:text-[#0088CC]">
+                      ↗
+                    </span>
+                  </span>
+                  <span className="text-sm leading-relaxed text-[#666666]">
+                    {item.desc}
+                  </span>
+                  <span className="text-xs font-medium text-[#999999] transition-colors group-hover:text-[#0088CC]">
+                    {item.label}
+                  </span>
+                </span>
               </a>
-            </div>
-
-            {/* Item 2 */}
-            <div className="flex flex-col gap-1 py-3 border-b border-[#F0F0F0]">
-              <span className="font-bold text-[#0A0A0A] text-lg">
-                Portfolio
-              </span>
-              <span className="text-sm text-[#666666] mb-2">
-                This website. React · Tailwind CSS · Three.js · GSAP
-              </span>
-              <a
-                href="https://portofolio-eight-vert.vercel.app"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-semibold hover:text-[#7DD3FC] transition-colors self-start"
-                style={{ color: "#888888" }}
-              >
-                portofolio-eight-vert.vercel.app ↗
-              </a>
-            </div>
+            ))}
           </div>
         </div>
       </div>

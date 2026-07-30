@@ -42,17 +42,24 @@ export default function TechStackStrip() {
     let xPos = -singleWidth;
 
     // --- Motion constants ---
-    const BASE_SPEED = 0.35;  // px/frame when idle — feels slow, calm
-    const MAX_BOOST  = 5.5;   // max extra px/frame from scroll
-    let scrollBoost  = 0;     // can be negative (scroll up reverses direction)
+    const BASE_SPEED = 0.35; // px/frame when idle — feels slow, calm
+    const MAX_BOOST = 5.5; // max extra px/frame from scroll
+    let scrollBoost = 0; // can be negative (scroll up reverses direction)
+    let lastDirection = 1; // ← TAMBAH: 1 = kanan, -1 = kiri
 
     // --- ScrollTrigger: read scroll velocity + direction ---
     const st = ScrollTrigger.create({
       start: 0,
       end: "max",
       onUpdate: (self) => {
-        const rawVel = self.getVelocity();          // px/s, signed
-        const dir    = self.direction;              // 1 = down, -1 = up
+        const rawVel = self.getVelocity(); // px/s, signed
+        const dir = self.direction; // 1 = down, -1 = up
+
+        // ← SIMPAN lastDirection saat ada scroll (threshold biar tidak noise)
+        if (Math.abs(rawVel) > 100) {
+          lastDirection = dir;
+        }
+
         // Normalize to 0-1 based on a 1500px/s "full speed" scroll
         const normalised = Math.min(Math.abs(rawVel) / 1500, 1);
         scrollBoost = dir * normalised * MAX_BOOST;
@@ -64,18 +71,18 @@ export default function TechStackStrip() {
       // Decay scrollBoost toward 0 each frame (smooth return to base speed)
       scrollBoost *= 0.92;
 
-      const totalSpeed = BASE_SPEED + scrollBoost;
+      // ← UBAH: BASE_SPEED dikali lastDirection
+      const totalSpeed = BASE_SPEED * lastDirection + scrollBoost;
       xPos += totalSpeed;
 
       // Seamless loop in both directions
-      if (xPos > 0)              xPos -= singleWidth;
+      if (xPos > 0) xPos -= singleWidth;
       if (xPos < -singleWidth * 2) xPos += singleWidth;
 
       gsap.set(track, { x: xPos });
 
       rafRef.current = requestAnimationFrame(tick);
     };
-
     rafRef.current = requestAnimationFrame(tick);
 
     return () => {
