@@ -15,10 +15,47 @@ const LINKS = [
   { label: "Contact", id: "contact" },
 ];
 
+// Pure helpers — no dependency on component state/props, so they live at
+// module scope instead of being re-created inside the effect on every mount.
+const parseRgba = (str: string) => {
+  const match = str.match(
+    /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\)/,
+  );
+  if (!match) return null;
+  return {
+    r: Number(match[1]),
+    g: Number(match[2]),
+    b: Number(match[3]),
+    a: match[4] !== undefined ? Number(match[4]) : 1,
+  };
+};
+
+const luminance = (r: number, g: number, b: number) => {
+  const norm = [r, g, b].map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * norm[0] + 0.7152 * norm[1] + 0.0722 * norm[2];
+};
+
+const sampleAt = (x: number, y: number): number | null => {
+  let el = document.elementFromPoint(x, y) as HTMLElement | null;
+  while (el) {
+    const bg = window.getComputedStyle(el).backgroundColor;
+    const parsed = parseRgba(bg);
+    if (parsed && parsed.a > 0) {
+      return luminance(parsed.r, parsed.g, parsed.b);
+    }
+    el = el.parentElement;
+  }
+  return null;
+};
+
 export default function Nav() {
   const [navState, setNavState] = useState<NavState>("hero");
   const [isMobileMenuOpen, setMobileMenu] = useState(false);
   const [hoveredId, setHoveredId] = useState<string>("");
+  const [activeId, setActiveId] = useState<string>("");
   const [lightness, setLightness] = useState(0);
 
   const pillRef = useRef<HTMLDivElement>(null);
@@ -26,43 +63,19 @@ export default function Nav() {
   const indicatorRef = useRef<HTMLDivElement>(null);
   const smoothedLightness = useRef(0);
 
-  /* ── Background color sampling ── */
+  /* ── Scroll behavior + background color sampling ──
+     Combined into a single listener, throttled to one pass per animation
+     frame (instead of running full work synchronously on every scroll
+     event) to avoid layout-thrashing from elementFromPoint/getComputedStyle
+     during fast scrolling. */
   useEffect(() => {
-    const parseRgba = (str: string) => {
-      const match = str.match(
-        /rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+))?\)/,
-      );
-      if (!match) return null;
-      return {
-        r: Number(match[1]),
-        g: Number(match[2]),
-        b: Number(match[3]),
-        a: match[4] !== undefined ? Number(match[4]) : 1,
-      };
-    };
+    let lastY = window.scrollY;
+    let ticking = false;
+    let scrollCount = 0;
+    const SAMPLE_EVERY = 3;
 
-    const luminance = (r: number, g: number, b: number) => {
-      const norm = [r, g, b].map((c) => {
-        const s = c / 255;
-        return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-      });
-      return 0.2126 * norm[0] + 0.7152 * norm[1] + 0.0722 * norm[2];
-    };
-
-    const sampleAt = (x: number, y: number): number | null => {
-      let el = document.elementFromPoint(x, y) as HTMLElement | null;
-      while (el) {
-        const bg = window.getComputedStyle(el).backgroundColor;
-        const parsed = parseRgba(bg);
-        if (parsed && parsed.a > 0) {
-          return luminance(parsed.r, parsed.g, parsed.b);
-        }
-        el = el.parentElement;
-      }
-      return null;
-    };
-
-    let rafId: number | null = null;
+    const targetLightness = { current: 0 };
+    let smoothRafId: number | null = null;
 
     const tick = () => {
       const current = smoothedLightness.current;
@@ -71,75 +84,130 @@ export default function Nav() {
       smoothedLightness.current = next;
       setLightness(next);
       if (Math.abs(target - next) > 0.002) {
-        rafId = requestAnimationFrame(tick);
+        smoothRafId = requestAnimationFrame(tick);
       } else {
-        rafId = null;
+        smoothRafId = null;
       }
     };
-
-    const targetLightness = { current: 0 };
 
     const startSmoothing = () => {
-      if (rafId === null) rafId = requestAnimationFrame(tick);
+      if (smoothRafId === null) smoothRafId = requestAnimationFrame(tick);
     };
 
-    let scrollCount = 0;
-    const SAMPLE_EVERY = 3;
-
-    const onScrollSample = () => {
-      scrollCount++;
-      if (scrollCount % SAMPLE_EVERY !== 0) return;
-      const sampleX = window.innerWidth - 120;
-      const sampleY = 40;
-      const result = sampleAt(sampleX, sampleY);
-      if (result !== null) {
-        targetLightness.current = result;
-        startSmoothing();
-      }
-    };
-
-    onScrollSample();
-
-    window.addEventListener("scroll", onScrollSample, { passive: true });
-    return () => {
-      window.removeEventListener("scroll", onScrollSample);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-    };
-  }, []);
-
-  /* ── Scroll behavior ── */
-  useEffect(() => {
-    let lastY = window.scrollY;
-    const onScroll = () => {
+    const processScroll = () => {
       const y = window.scrollY;
+
       if (y < 80) setNavState("hero");
       else if (y > lastY) setNavState("hidden");
       else setNavState("visible");
       lastY = y;
+
+      // The pill is transparent near the top anyway (isHero styling), so
+      // there's nothing to sample a color for until it's actually visible.
+      if (y >= 80) {
+        scrollCount++;
+        if (scrollCount % SAMPLE_EVERY === 0) {
+          const sampleX = window.innerWidth - 120;
+          const sampleY = 40;
+          const result = sampleAt(sampleX, sampleY);
+          if (result !== null) {
+            targetLightness.current = result;
+            startSmoothing();
+          }
+        }
+      }
+
+      ticking = false;
     };
+
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      requestAnimationFrame(processScroll);
+    };
+
+    processScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (smoothRafId !== null) cancelAnimationFrame(smoothRafId);
+    };
   }, []);
 
   /* ── Close mobile menu when hidden ── */
   useEffect(() => {
-    if (navState === "hidden") setMobileMenu(false);
+    if (navState === "hidden") {
+      const id = setTimeout(() => setMobileMenu(false), 0);
+      return () => clearTimeout(id);
+    }
   }, [navState]);
 
-  /* ── Sliding indicator animation (hover-only) ── */
+  /* ── Scroll-spy: highlight whichever section is currently centered in the
+     viewport, so the indicator reflects where you actually are while
+     scrolling — not just on hover. The -45%/-45% margin means a section
+     only counts as "active" once it's crossing the vertical middle of the
+     screen, rather than the moment it merely enters the viewport. */
+  useEffect(() => {
+    const sections = LINKS.map(({ id }) => document.getElementById(id)).filter(
+      (el): el is HTMLElement => el !== null,
+    );
+    if (!sections.length) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((entry) => entry.isIntersecting);
+        if (visible.length === 0) return;
+        // If more than one qualifies, prefer the one closest to true center.
+        const best = visible.reduce((a, b) =>
+          Math.abs(a.boundingClientRect.top) <
+          Math.abs(b.boundingClientRect.top)
+            ? a
+            : b,
+        );
+        setActiveId(best.target.id);
+      },
+      { rootMargin: "-45% 0px -45% 0px", threshold: 0 },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  /* ── Mobile menu: Escape to close + lock background scroll while open ── */
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenu(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileMenuOpen]);
+
+  /* ── Sliding indicator animation — follows hover, falls back to
+     whichever section scroll-spy says is currently active ── */
+  const indicatorTargetId = hoveredId || activeId;
+
   useGSAP(
     () => {
-      const hoveredEl = linkRefs.current[hoveredId];
+      const targetEl = linkRefs.current[indicatorTargetId];
       const pillEl = pillRef.current;
       const indicatorEl = indicatorRef.current;
 
-      if (!hoveredEl || !pillEl || !indicatorEl || !hoveredId) {
+      if (!targetEl || !pillEl || !indicatorEl || !indicatorTargetId) {
         if (indicatorEl) gsap.to(indicatorEl, { opacity: 0, duration: 0.2 });
         return;
       }
 
       const pillRect = pillEl.getBoundingClientRect();
-      const linkRect = hoveredEl.getBoundingClientRect();
+      const linkRect = targetEl.getBoundingClientRect();
       const x = linkRect.left - pillRect.left;
       const width = linkRect.width;
 
@@ -151,7 +219,7 @@ export default function Nav() {
         ease: "power3.out",
       });
     },
-    { dependencies: [hoveredId], scope: pillRef },
+    { dependencies: [indicatorTargetId], scope: pillRef },
   );
 
   /* ── Smooth scroll ── */
@@ -210,7 +278,9 @@ export default function Nav() {
           ...sharedTransition,
         }}
       >
-        <span style={{ color: isHero ? "#FFFFFF" : navColors.text }}>Athallah</span>
+        <span style={{ color: isHero ? "#FFFFFF" : navColors.text }}>
+          Athallah
+        </span>
         <span style={{ color: "#7DD3FC" }}>sy</span>
       </a>
 
@@ -252,37 +322,56 @@ export default function Nav() {
           }}
         />
 
-        {LINKS.map(({ label, id }) => (
-          <a
-            key={id}
-            ref={(el) => {
-              linkRefs.current[id] = el;
-            }}
-            href={`#${id}`}
-            onClick={(e) => handleClick(e, id)}
-            onMouseEnter={() => setHoveredId(id)}
-            onMouseLeave={() => setHoveredId("")}
-            className="nav-link"
-            data-active={hoveredId === id}
-            style={{
-              position: "relative",
-              zIndex: 1,
-              fontFamily: "var(--font-jakarta), sans-serif",
-              fontSize: "12px",
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-              color: isHero ? "#AAAAAA" : navColors.pillContentText,
-              cursor: "pointer",
-              padding: "8px 18px",
-              borderRadius: "999px",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {label}
-          </a>
-        ))}
+        {LINKS.map(({ label, id }) => {
+          const isHighlighted = indicatorTargetId === id;
+          const isContact = id === "contact";
+          return (
+            <a
+              key={id}
+              ref={(el) => {
+                linkRefs.current[id] = el;
+              }}
+              href={`#${id}`}
+              onClick={(e) => handleClick(e, id)}
+              onMouseEnter={() => setHoveredId(id)}
+              onMouseLeave={() => setHoveredId("")}
+              className="nav-link"
+              data-active={isHighlighted}
+              style={{
+                position: "relative",
+                zIndex: 1,
+                fontFamily: "var(--font-jakarta), sans-serif",
+                fontSize: "12px",
+                fontWeight: isContact ? 700 : 600,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                // Highlighted (hovered or the active section) always reads
+                // white since it's sitting on the solid black indicator.
+                // Contact otherwise stands out in the accent color as the
+                // one CTA-style link among plain section links.
+                color: isHighlighted
+                  ? "#FFFFFF"
+                  : isContact
+                    ? "#7DD3FC"
+                    : isHero
+                      ? "#AAAAAA"
+                      : navColors.pillContentText,
+                cursor: "pointer",
+                padding: "8px 18px",
+                borderRadius: "999px",
+                whiteSpace: "nowrap",
+                border:
+                  isContact && !isHighlighted
+                    ? "1px solid rgba(125, 211, 252, 0.35)"
+                    : "1px solid transparent",
+                transition: "color 0.2s ease, border-color 0.2s ease",
+              }}
+            >
+              {label}
+            </a>
+          );
+        })}
       </nav>
 
       {/* ── MOBILE HAMBURGER ── */}
@@ -299,6 +388,8 @@ export default function Nav() {
         <button
           onClick={() => setMobileMenu(!isMobileMenuOpen)}
           aria-label="Toggle Menu"
+          aria-expanded={isMobileMenuOpen}
+          aria-controls="mobile-nav-menu"
           style={{
             display: "flex",
             alignItems: "center",
@@ -329,6 +420,8 @@ export default function Nav() {
 
       {/* ── MOBILE FULLSCREEN DROPDOWN ── */}
       <div
+        id="mobile-nav-menu"
+        aria-hidden={!isMobileMenuOpen}
         style={{
           position: "fixed",
           inset: 0,
@@ -347,26 +440,31 @@ export default function Nav() {
           pointerEvents: isMobileMenuOpen ? "auto" : "none",
         }}
       >
-        {LINKS.map(({ label, id }) => (
-          <a
-            key={id}
-            href={`#${id}`}
-            onClick={(e) => handleClick(e, id)}
-            style={{
-              fontFamily: "var(--font-jakarta), sans-serif",
-              fontSize: "20px",
-              fontWeight: 600,
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-              color: "#FFFFFF",
-              paddingBottom: "2px",
-              cursor: "pointer",
-            }}
-          >
-            {label}
-          </a>
-        ))}
+        {LINKS.map(({ label, id }) => {
+          const isContact = id === "contact";
+          const isActive = activeId === id;
+          return (
+            <a
+              key={id}
+              href={`#${id}`}
+              onClick={(e) => handleClick(e, id)}
+              style={{
+                fontFamily: "var(--font-jakarta), sans-serif",
+                fontSize: "20px",
+                fontWeight: isContact ? 700 : 600,
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                color: isContact ? "#7DD3FC" : "#FFFFFF",
+                opacity: isActive || isContact ? 1 : 0.75,
+                paddingBottom: "2px",
+                cursor: "pointer",
+              }}
+            >
+              {label}
+            </a>
+          );
+        })}
       </div>
     </>
   );

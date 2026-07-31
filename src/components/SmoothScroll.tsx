@@ -17,16 +17,12 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       smoothWheel: true,
     });
 
-    // Update ScrollTrigger on scroll
     lenis.on("scroll", ScrollTrigger.update);
 
-    // Sync Lenis with GSAP ticker
     const tick = (time: number) => {
       lenis.raf(time * 1000);
     };
     gsap.ticker.add(tick);
-
-    // Disable lag smoothing to prevent stutters
     gsap.ticker.lagSmoothing(0);
 
     return () => {

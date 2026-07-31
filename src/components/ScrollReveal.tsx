@@ -4,10 +4,7 @@ import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
-// Register ScrollTrigger plugin
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
+gsap.registerPlugin(ScrollTrigger);
 
 interface ScrollRevealProps {
   text: string;
@@ -31,12 +28,12 @@ export default function ScrollReveal({ text, className, style }: ScrollRevealPro
         { color: "#6B6B6B" },
         {
           color: "#F5F5F5",
-          stagger: 0.015, // Smooth sequential transition per character
+          stagger: 0.015,
           ease: "none",
           scrollTrigger: {
             trigger: container,
-            start: "top 85%", // Starts animation when the top of paragraph enters 85% of the viewport height
-            end: "bottom 65%", // Finishes before it scrolls out too far
+            start: "top 85%",
+            end: "bottom 65%",
             scrub: true,
           },
         }
@@ -46,9 +43,6 @@ export default function ScrollReveal({ text, className, style }: ScrollRevealPro
     return () => ctx.revert();
   }, [text]);
 
-  // Split text by words first, then split each word by characters.
-  // This approach keeps characters grouped by word wrappers (with whiteSpace: nowrap)
-  // to preserve word wrapping correctly while animating letters individually.
   const words = text.split(" ");
 
   return (
@@ -82,14 +76,8 @@ export default function ScrollReveal({ text, className, style }: ScrollRevealPro
               {char}
             </span>
           ))}
-          {/* Render space between words except after the last word */}
           {wordIdx < words.length - 1 && (
-            <span
-              style={{
-                display: "inline-block",
-                whiteSpace: "pre",
-              }}
-            >
+            <span style={{ display: "inline-block", whiteSpace: "pre" }}>
               {" "}
             </span>
           )}

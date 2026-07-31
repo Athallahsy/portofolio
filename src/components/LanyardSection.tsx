@@ -33,14 +33,11 @@ export default function LanyardSection() {
   const [startEntrance, setStartEntrance] = useState(false);
 
   useEffect(() => {
-    // Only render particles on non-mobile devices (>= 768px)
-    if (window.innerWidth >= 768) {
-      setShowParticles(true);
-    }
-
     const handleResize = () => {
       setShowParticles(window.innerWidth >= 768);
     };
+    // Trigger once on mount via the same handler (avoids setState-in-effect lint error)
+    handleResize();
     window.addEventListener("resize", handleResize);
 
     const trigger = ScrollTrigger.create({
@@ -110,7 +107,7 @@ export default function LanyardSection() {
               fontVariationSettings: "'opsz' 72",
             }}
           >
-            Hi, I'm
+            Hi, I&apos;m
             <br />
             <span style={{ fontStyle: "italic", color: "#7DD3FC" }}>
               Athallah.
@@ -154,8 +151,6 @@ export default function LanyardSection() {
           <Lanyard
             position={[2.5, 1.9, 14.8]}
             gravity={[0, -40, 0]}
-            frontImage="/images/profile.png"
-            imageFit="cover"
             startEntrance={startEntrance}
           />
         </Suspense>

@@ -80,53 +80,7 @@ nav.scrolled {
   }
 }
 
-/* ======================== ABOUT ======================== */
-.about-eyebrow span {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--accent-light);
-  display: block;
-  transform: translateY(120%);
-}
 
-.about-eyebrow-dash {
-  width: 44px;
-  height: 1px;
-  background: var(--accent-light);
-  flex-shrink: 0;
-  transform: scaleX(0);
-  transform-origin: left;
-}
-
-.about-quote {
-  font-family: var(--font-space-grotesk);
-  font-size: clamp(26px, 3.2vw, 46px);
-  font-weight: 200;
-  font-style: italic;
-  line-height: 1.4;
-  color: rgba(243, 242, 238, 0.9);
-  font-variation-settings: "opsz" 72;
-}
-.about-quote em {
-  font-style: normal;
-  color: var(--accent-light);
-}
-
-.about-body {
-  font-size: 15px;
-  font-weight: 300;
-  line-height: 2;
-  color: rgba(243, 242, 238, 0.5);
-}
-.about-body p + p {
-  margin-top: 22px;
-}
-.about-body strong {
-  color: rgba(243, 242, 238, 0.85);
-  font-weight: 500;
-}
 
 /* ======================== SECTION COMMONS ======================== */
 .sec-eyebrow-text {
@@ -166,96 +120,10 @@ nav.scrolled {
 
 /* ======================== PROJECTS ======================== */
 
-/* ======================== CONTACT ======================== */
-.contact-eyebrow span {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(190, 216, 200, 0.8);
-  display: block;
-  transform: translateY(120%);
-}
-
-.contact-eyebrow-dash {
-  width: 44px;
-  height: 1px;
-  background: rgba(190, 216, 200, 0.4);
-  flex-shrink: 0;
-  transform: scaleX(0);
-  transform-origin: left;
-}
-
-.contact-title {
-  font-family: var(--font-space-grotesk);
-  font-size: clamp(44px, 6.5vw, 96px);
-  font-weight: 200;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  color: white;
-  font-variation-settings: "opsz" 144;
-}
-
-.contact-sub {
-  font-size: 15px;
-  font-weight: 300;
-  line-height: 1.85;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-.contact-email {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  padding: 18px 36px;
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  color: white;
-  font-size: 13px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-decoration: none;
-  transition:
-    background 0.3s,
-    border-color 0.3s,
-    color 0.3s;
-}
-.contact-email:hover {
-  background: white;
-  color: var(--accent);
-  border-color: white;
-}
-
-.soc-link {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.5);
-  text-decoration: none;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  transition: color 0.25s;
-}
-.soc-link:hover {
-  color: white;
-}
 
 /* ======================== FOOTER ======================== */
-.footer-name {
-  font-family: var(--font-space-grotesk);
-  font-size: 13px;
-  font-weight: 200;
-  color: rgba(243, 242, 238, 0.3);
-  font-variation-settings: "opsz" 9;
-}
+/* Footer styles now handled inline in FooterContact.tsx */
 
-.footer-motto {
-  font-size: 11px;
-  font-weight: 300;
-  font-style: italic;
-  color: rgba(243, 242, 238, 0.2);
-}
 
 /* ======================== SCROLLBAR ======================== */
 /* Default: scrollbar nyaris tak terlihat (blend ke background) */

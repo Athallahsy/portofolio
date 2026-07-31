@@ -229,7 +229,7 @@ export default function Skills() {
               color: "#7DD3FC",
               fontFamily: "var(--font-jakarta)",
             }}>
-              // TOOLKIT
+              {"// TOOLKIT"}
             </span>
             <div style={{
               width: 40,

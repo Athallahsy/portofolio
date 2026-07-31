@@ -1,4 +1,3 @@
-/* eslint-disable react/no-unknown-property */
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, extend, useFrame } from "@react-three/fiber";
@@ -15,35 +14,28 @@ import {
   RigidBody,
   useRopeJoint,
   useSphericalJoint,
+  type RapierRigidBody,
 } from "@react-three/rapier";
 import { MeshLineGeometry, MeshLineMaterial } from "meshline";
 import * as THREE from "three";
-import gsap from "gsap";
 
 extend({ MeshLineGeometry, MeshLineMaterial });
 
 // Augment ThreeElements to support meshLine JSX tags in TypeScript
 declare module "@react-three/fiber" {
   interface ThreeElements {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meshLineGeometry: any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     meshLineMaterial: any;
   }
 }
-
-const BLANK_PIXEL =
-  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-
-const FRONT_UV_RECT = { x: 0, y: 0, w: 0.5, h: 0.755 };
-const BACK_UV_RECT = { x: 0.5, y: 0, w: 0.5, h: 0.757 };
 
 interface LanyardProps {
   position?: [number, number, number];
   gravity?: [number, number, number];
   fov?: number;
   transparent?: boolean;
-  frontImage?: string | null;
-  backImage?: string | null;
-  imageFit?: "cover" | "contain";
   lanyardImage?: string | null;
   lanyardWidth?: number;
   startEntrance?: boolean;
@@ -55,9 +47,6 @@ export default function Lanyard({
   gravity = [0, -40, 0],
   fov = 20,
   transparent = true,
-  frontImage = null,
-  backImage = null,
-  imageFit = "cover",
   lanyardImage = null,
   lanyardWidth = 1,
   startEntrance = false,
@@ -67,10 +56,10 @@ export default function Lanyard({
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
-    setIsMobile(window.innerWidth < 768);
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
   }, []);
 
   const [posX, posY, posZ] = position;
@@ -96,9 +85,6 @@ export default function Lanyard({
           <Band
             setIsDragging={setIsDragging}
             isMobile={isMobile}
-            frontImage={frontImage}
-            backImage={backImage}
-            imageFit={imageFit}
             lanyardImage={lanyardImage}
             lanyardWidth={lanyardWidth}
             posX={posX}
@@ -147,9 +133,6 @@ interface BandProps {
   minSpeed?: number;
   isMobile?: boolean;
   setIsDragging?: (val: boolean) => void;
-  frontImage?: string | null;
-  backImage?: string | null;
-  imageFit?: "cover" | "contain";
   lanyardImage?: string | null;
   lanyardWidth?: number;
   posX?: number;
@@ -163,9 +146,6 @@ function Band({
   minSpeed = 0,
   isMobile = false,
   setIsDragging,
-  frontImage = null,
-  backImage = null,
-  imageFit = "cover",
   lanyardImage = null,
   lanyardWidth = 1,
   posX = 2.0,
@@ -173,52 +153,30 @@ function Band({
   startEntrance = false,
   reduceMotion = false,
 }: BandProps) {
-  const band = useRef<any>(null);
-  const fixed = useRef<any>(null);
-  const j1 = useRef<any>(null);
-  const j2 = useRef<any>(null);
-  const j3 = useRef<any>(null);
-  const j4 = useRef<any>(null);
-  const j5 = useRef<any>(null);
-  const card = useRef<any>(null);
+  const band = useRef<THREE.Mesh>(null!);
+  const fixed = useRef<RapierRigidBody>(null!);
+  const j1 = useRef<RapierRigidBody>(null!);
+  const j2 = useRef<RapierRigidBody>(null!);
+  const j3 = useRef<RapierRigidBody>(null!);
+  const j4 = useRef<RapierRigidBody>(null!);
+  const j5 = useRef<RapierRigidBody>(null!);
+  const card = useRef<RapierRigidBody>(null!);
 
   const [entranceDone, setEntranceDone] = useState(false);
-  const entranceRef = useRef({ y: 2.5 });
 
   useEffect(() => {
     if (startEntrance) {
-      if (reduceMotion) {
-        // Skip the drop animation entirely — land at rest position at once.
-        entranceRef.current.y = 0;
+      const id = setTimeout(() => {
         setEntranceDone(true);
-      } else {
-        gsap.to(entranceRef.current, {
-          y: 0,
-          duration: 1.0,
-          ease: "power2.in", // Sekali jatuh langsung ke bawah tanpa memantul
-          onComplete: () => setEntranceDone(true),
-        });
-      }
+      }, 0);
+      return () => clearTimeout(id);
     }
-  }, [startEntrance, reduceMotion]);
+  }, [startEntrance]);
 
-  useEffect(() => {
-    if (entranceDone && !reduceMotion && card.current) {
-      // Previously this only fired on mobile — on desktop the card became a
-      // dynamic body with zero velocity right after the scripted drop, so it
-      // just hung there dead-still instead of settling naturally. Give both
-      // a landing impulse (+ a touch of spin) so the rope physics take over
-      // and it swings/settles like something that actually just fell.
-      const impulseStrength = isMobile ? 0.3 : 0.45;
-      card.current.applyImpulse({ x: impulseStrength, y: 0, z: 0.1 }, true);
-      card.current.applyTorqueImpulse({ x: 0, y: 0.05, z: 0.035 }, true);
-    }
-  }, [entranceDone, isMobile, reduceMotion]);
-
-  const vec = new THREE.Vector3();
-  const ang = new THREE.Vector3();
-  const rot = new THREE.Vector3();
-  const dir = new THREE.Vector3();
+  const vec = useRef(new THREE.Vector3()).current;
+  const ang = useRef(new THREE.Vector3()).current;
+  const rot = useRef(new THREE.Vector3()).current;
+  const dir = useRef(new THREE.Vector3()).current;
 
   const segmentProps = {
     type: "dynamic" as const,
@@ -229,70 +187,31 @@ function Band({
   };
 
   // Load resources using static paths
-  const { nodes, materials } = useGLTF("/models/card.glb") as any;
-  const texture = useTexture(lanyardImage || "/textures/lanyard.png");
-  const frontTex = useTexture(frontImage || BLANK_PIXEL);
-  const backTex = useTexture(backImage || BLANK_PIXEL);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { nodes, materials } = useGLTF("/models/card-v3.glb") as any;
+  const texture = useTexture(lanyardImage || "/textures/lanyard-v3.png");
+  // Must be set synchronously before the mesh renders — useEffect is too late
+  // (Three.js caches texture state on first draw call)
+  // eslint-disable-next-line react-hooks/immutability
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
-  // Composite texture atlas
-  const cardMap = useMemo(() => {
-    const baseMap = materials.base.map;
-    if (!frontImage && !backImage) return baseMap;
+  // Use the baked texture from the GLB directly
+  const cardMap = materials.base.map;
 
-    const baseImg = baseMap.image;
-    const W = baseImg.width;
-    const H = baseImg.height;
-    const canvas = document.createElement("canvas");
-    canvas.width = W;
-    canvas.height = H;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return baseMap;
-    ctx.drawImage(baseImg, 0, 0, W, H);
+  const curve = useMemo(() => {
+    const c = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+      new THREE.Vector3(),
+    ]);
+    c.curveType = "chordal";
+    return c;
+  }, []);
 
-    const drawFitted = (img: HTMLImageElement, rect: typeof FRONT_UV_RECT) => {
-      const rx = rect.x * W;
-      const ry = rect.y * H;
-      const rw = rect.w * W;
-      const rh = rect.h * H;
-      const pick = imageFit === "contain" ? Math.min : Math.max;
-      const scale = pick(rw / img.width, rh / img.height);
-      const dw = img.width * scale;
-      const dh = img.height * scale;
-      const dx = rx + (rw - dw) / 2;
-      const dy = ry + (rh - dh) / 2;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(rx, ry, rw, rh);
-      ctx.clip();
-      ctx.drawImage(img, dx, dy, dw, dh);
-      ctx.restore();
-    };
-
-    if (frontImage && frontTex.image)
-      drawFitted(frontTex.image as any, FRONT_UV_RECT);
-    if (backImage && backTex.image)
-      drawFitted(backTex.image as any, BACK_UV_RECT);
-
-    const composite = new THREE.CanvasTexture(canvas);
-    composite.colorSpace = THREE.SRGBColorSpace;
-    composite.flipY = baseMap.flipY;
-    composite.anisotropy = 16;
-    composite.needsUpdate = true;
-    return composite;
-  }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base.map]);
-
-  const [curve] = useState(
-    () =>
-      new THREE.CatmullRomCurve3([
-        new THREE.Vector3(),
-        new THREE.Vector3(),
-        new THREE.Vector3(),
-        new THREE.Vector3(),
-        new THREE.Vector3(),
-        new THREE.Vector3(),
-        new THREE.Vector3(),
-      ]),
-  );
   const [dragged, drag] = useState<THREE.Vector3 | false>(false);
   const [hovered, hover] = useState(false);
 
@@ -314,9 +233,7 @@ function Band({
   }, [hovered, dragged, isMobile]);
 
   useFrame((state, delta) => {
-    // Dynamic camera positioning for responsiveness
     if (!isMobile) {
-      // Keep the card (rest position X=0) exactly posX units from the right edge of the screen
       const targetCamX = -(state.viewport.width / 2 - posX);
       state.camera.position.x = targetCamX;
     } else {
@@ -327,9 +244,12 @@ function Band({
       const anchorY = isMobile ? 5 : posY !== undefined ? posY + 2.5 : 3.8;
       const restY = anchorY - 3.0;
 
+      const holdOffsetX = reduceMotion ? 0 : isMobile ? 1.0 : 1.8;
+      const holdOffsetY = reduceMotion ? 0 : 3.2;
+
       card.current?.setNextKinematicTranslation({
-        x: 0,
-        y: restY + entranceRef.current.y,
+        x: holdOffsetX,
+        y: restY + holdOffsetY,
         z: 0,
       });
       [j1, j2, j3, j4, j5, fixed].forEach((ref) => ref.current?.wakeUp());
@@ -339,7 +259,6 @@ function Band({
       vec.add(dir.multiplyScalar(state.camera.position.length()));
       [card, j1, j2, j3, j4, j5, fixed].forEach((ref) => ref.current?.wakeUp());
 
-      // Dynamic boundary clamps based on viewport size
       const minX = posX - state.viewport.width;
       const maxX = posX - 0.2;
       const minY = state.camera.position.y - state.viewport.height / 2 + 0.5;
@@ -358,45 +277,62 @@ function Band({
 
     if (fixed.current) {
       [j1, j2, j3, j4].forEach((ref) => {
-        if (!ref.current.lerped)
-          ref.current.lerped = new THREE.Vector3().copy(
-            ref.current.translation(),
-          );
+        if (!ref.current) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lerped = (ref.current as any).lerped as THREE.Vector3 | undefined;
+        const currentTranslation = ref.current.translation();
+        const currentVec = new THREE.Vector3(currentTranslation.x, currentTranslation.y, currentTranslation.z);
+        if (!lerped) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (ref.current as any).lerped = currentVec.clone();
+          return;
+        }
         const clampedDistance = Math.max(
           0.1,
-          Math.min(1, ref.current.lerped.distanceTo(ref.current.translation())),
+          Math.min(1, lerped.distanceTo(currentVec)),
         );
-        ref.current.lerped.lerp(
-          ref.current.translation(),
+        lerped.lerp(
+          currentVec,
           delta * (minSpeed + clampedDistance * (maxSpeed - minSpeed)),
         );
       });
 
-      // Calculate the exact hook connector position on the card mesh dynamically (offset + rotation)
-      const cardTrans = card.current.translation();
-      const cardRot = card.current.rotation();
+      const cardTrans = card.current!.translation();
+      const cardRot = card.current!.rotation();
       const hookOffset = new THREE.Vector3(0, 1.15, 0).applyQuaternion(
         new THREE.Quaternion(cardRot.x, cardRot.y, cardRot.z, cardRot.w),
       );
-      const hookPos = new THREE.Vector3().copy(cardTrans).add(hookOffset);
+      const hookPos = new THREE.Vector3(cardTrans.x, cardTrans.y, cardTrans.z).add(hookOffset);
+
+      const getRefVec = (ref: React.RefObject<RapierRigidBody | null>) => {
+        if (!ref.current) return new THREE.Vector3();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const lerped = (ref.current as any).lerped as THREE.Vector3 | undefined;
+        if (lerped) return lerped;
+        const t = ref.current.translation();
+        return new THREE.Vector3(t.x, t.y, t.z);
+      };
+
+      const j5t = j5.current!.translation();
+      const fixedt = fixed.current.translation();
 
       curve.points[0].copy(hookPos);
-      curve.points[1].copy(j5.current.translation());
-      curve.points[2].copy(j4.current.lerped || j4.current.translation());
-      curve.points[3].copy(j3.current.lerped || j3.current.translation());
-      curve.points[4].copy(j2.current.lerped || j2.current.translation());
-      curve.points[5].copy(j1.current.lerped || j1.current.translation());
-      curve.points[6].copy(fixed.current.translation());
+      curve.points[1].set(j5t.x, j5t.y, j5t.z);
+      curve.points[2].copy(getRefVec(j4));
+      curve.points[3].copy(getRefVec(j3));
+      curve.points[4].copy(getRefVec(j2));
+      curve.points[5].copy(getRefVec(j1));
+      curve.points[6].set(fixedt.x, fixedt.y, fixedt.z);
 
-      band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
-      ang.copy(card.current.angvel());
-      rot.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (band.current as any)?.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+      const angVel = card.current!.angvel();
+      const cardRotation = card.current!.rotation();
+      rot.set(cardRotation.x, cardRotation.y, cardRotation.z);
+      ang.set(angVel.x, angVel.y, angVel.z);
+      card.current!.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z }, true);
     }
   });
-
-  curve.curveType = "chordal";
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
   return (
     <>
@@ -452,13 +388,12 @@ function Band({
             }}
             onPointerDown={(e) => {
               if (!entranceDone) return;
-
               (e.target as HTMLElement).setPointerCapture(e.pointerId);
-
+              const cardTranslation = card.current!.translation();
               drag(
                 new THREE.Vector3()
                   .copy(e.point)
-                  .sub(vec.copy(card.current.translation())),
+                  .sub(vec.set(cardTranslation.x, cardTranslation.y, cardTranslation.z)),
               );
               if (setIsDragging) setIsDragging(true);
             }}
@@ -487,7 +422,6 @@ function Band({
 
       <mesh ref={band}>
         <meshLineGeometry />
-
         <meshLineMaterial
           color="white"
           depthTest={false}
@@ -495,11 +429,11 @@ function Band({
           useMap
           map={texture}
           repeat={[-3, 1]}
-          lineWidth={0.7}
+          lineWidth={lanyardWidth * 0.7}
         />
       </mesh>
     </>
   );
 }
 
-useGLTF.preload("/models/card.glb");
+useGLTF.preload("/models/card-v3.glb");

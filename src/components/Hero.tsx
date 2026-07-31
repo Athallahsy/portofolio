@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
@@ -11,11 +12,19 @@ export default function Hero() {
     gsap.registerPlugin(ScrollTrigger);
 
     // Semua elemen langsung di posisi/opacity final — tidak ada entrance animation
-    gsap.set([".hero-big-word", ".hero-corner-name", ".hero-bottom-right", ".scroll-hint"], {
-      opacity: 1,
-      y: 0,
-      x: 0,
-    });
+    gsap.set(
+      [
+        ".hero-big-word",
+        ".hero-corner-name",
+        ".hero-bottom-right",
+        ".scroll-hint",
+      ],
+      {
+        opacity: 1,
+        y: 0,
+        x: 0,
+      },
+    );
 
     // Scroll-reactive: FULLSTACK geser ke kiri, DEVELOPER geser ke kanan,
     // teks & button geser turun. scrub:true = nempel 1:1 ke posisi scroll.
@@ -29,8 +38,16 @@ export default function Hero() {
     });
 
     scrollTl
-      .to('.hero-big-word[data-word="left"]', { x: "-30vw", opacity: 0, ease: "none" }, 0)
-      .to('.hero-big-word[data-word="right"]', { x: "30vw", opacity: 0, ease: "none" }, 0)
+      .to(
+        '.hero-big-word[data-word="left"]',
+        { x: "-30vw", opacity: 0, ease: "none" },
+        0,
+      )
+      .to(
+        '.hero-big-word[data-word="right"]',
+        { x: "30vw", opacity: 0, ease: "none" },
+        0,
+      )
       .to(".hero-corner-name", { y: 60, opacity: 0, ease: "none" }, 0)
       .to(".hero-bottom-right", { y: 60, opacity: 0, ease: "none" }, 0)
       .to(".scroll-hint", { opacity: 0, ease: "none" }, 0);
@@ -49,24 +66,25 @@ export default function Hero() {
       style={{ minHeight: "100svh", background: "#080808" }}
     >
       {/* Visually hidden h1 for SEO & screen readers — no visual change */}
-      <h1 className="sr-only">Athallah Muhammad Syaffa — Fullstack Developer</h1>
+      <h1 className="sr-only">
+        Athallah Muhammad Syaffa — Fullstack Developer
+      </h1>
 
       {/* ── BACKGROUND PHOTO ── */}
       <div className="absolute inset-0" style={{ zIndex: 0 }}>
-        <img
+        <Image
           src="/images/hero-bg.jpeg"
           alt=""
           aria-hidden
+          fill
+          priority
+          sizes="100vw"
           style={{
-            width: "100%",
-            height: "100%",
             objectFit: "cover",
             objectPosition: "80% center",
             filter: "grayscale(100%) brightness(0.55) contrast(1.15)",
-            display: "block",
           }}
         />
-        {/* subtle dark vignette overlay */}
         <div
           style={{
             position: "absolute",
@@ -284,6 +302,7 @@ export default function Hero() {
         }}
       >
         <span
+          className="hero-status-dot"
           style={{
             width: "6px",
             height: "6px",
@@ -318,6 +337,13 @@ export default function Hero() {
         @keyframes pulse {
           0%, 100% { opacity: 1; }
           50%       { opacity: 0.4; }
+        }
+
+        /* Respect the OS-level reduced-motion preference: freeze the two
+           looping micro-animations instead of running them indefinitely. */
+        @media (prefers-reduced-motion: reduce) {
+          .scroll-hint-line { animation: none !important; opacity: 0.6; }
+          .hero-status-dot  { animation: none !important; }
         }
 
         /* Mobile adjustments */

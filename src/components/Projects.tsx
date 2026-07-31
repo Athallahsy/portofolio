@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { MotionPathPlugin } from "gsap/MotionPathPlugin";
@@ -536,10 +537,13 @@ export default function Projects() {
           ref={airplaneRef}
           className="hidden lg:block pointer-events-none absolute top-0 left-0 w-[120px] h-[120px] z-10"
         >
-          <img
+          <Image
             src="/images/pesawat.svg"
             alt="airplane"
+            width={120}
+            height={120}
             style={{ width: "100%", height: "100%" }}
+            priority={false}
           />
         </div>
 
@@ -550,7 +554,7 @@ export default function Projects() {
               className="sec-eyebrow-text"
               style={{ color: "#0088CC", fontWeight: 600 }}
             >
-              // SELECTED WORK
+              {"// SELECTED WORK"}
             </span>
             <div
               className="sec-eyebrow-dash"
@@ -683,11 +687,13 @@ export default function Projects() {
                     } rounded-2xl border border-black/10 bg-white p-3 shadow-[0_10px_30px_rgba(10,10,10,0.08)] transition-transform duration-500 ease-out ${proj.rotation} hover:rotate-0 hover:shadow-[0_16px_40px_rgba(10,10,10,0.12)]`}
                   >
                     <div className="relative h-full w-full overflow-hidden rounded-xl bg-[#F3F3F3]">
-                      <img
+                      <Image
                         src={proj.screenshot}
                         alt={proj.title}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 480px"
                         onLoad={() => ScrollTrigger.refresh()}
-                        className="card-image-parallax h-full w-full object-contain"
+                        className="card-image-parallax object-contain"
                         style={{ willChange: "transform" }}
                       />
                     </div>
@@ -707,7 +713,7 @@ export default function Projects() {
             className="mb-5 block text-[11px] font-bold uppercase tracking-[0.2em]"
             style={{ color: "#888888" }}
           >
-            // Also built
+            {"// Also built"}
           </span>
 
           <div className="flex flex-col">
