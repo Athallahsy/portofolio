@@ -145,7 +145,7 @@ export default function LanyardSection() {
               lineHeight: "1.75",
             }}
           >
-            <ScrollReveal text="A Junior Fullstack Developer currently studying Software Engineering (D4 TRPL) at Politeknik IDN Bogor — semester 4, and counting every project as a step closer to building software that actually gets used." />
+            <ScrollReveal text="A Junior Fullstack Developer currently studying Software Engineering (D4 TRPL) at Politeknik IDN Bogor — semester 5, and counting every project as a step closer to building software that actually gets used." />
             <ScrollReveal text="I work with Laravel, Filament, and Sanctum on the backend, React and Tailwind on the front — recently built Finote, a personal finance manager with full REST API and PDF reporting, and shipped a real event landing page that's already live and used by an actual school event." />
             <ScrollReveal text="What I care about most isn't just making things work — it's making them work for someone. Whether that's an admin managing data through Filament, or a visitor scrolling through a landing page on their phone." />
             <ScrollReveal

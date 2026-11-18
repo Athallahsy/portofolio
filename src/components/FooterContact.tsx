@@ -405,7 +405,7 @@ export default function FooterContact() {
                 fontFamily: "var(--font-space-grotesk)",
               }}
             >
-              Bogor, Indonesia (GMT+7)
+              Banjarbaru, Indonesia · Open to relocate to Bandung
             </span>
           </div>
 
