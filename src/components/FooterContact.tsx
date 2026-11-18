@@ -130,7 +130,7 @@ const CONTACT_COLUMNS = [
   {
     label: "WhatsApp",
     value: "Chat on WhatsApp",
-    href: "https://wa.me/6283192511946",
+    href: "https://wa.me/628565001877",
     target: "_blank",
   },
 ];
