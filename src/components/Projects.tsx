@@ -1,818 +1,316 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
-import { gsap, ScrollTrigger } from "@/lib/gsap";
-
-type Aspect = "landscape" | "portrait";
-
-type Project = {
-  num: string;
-  title: string;
-  badge: string;
-  tags: string[];
-  desc: string;
-  screenshot: string;
-  aspect: Aspect;
-  rotation: string;
-  liveLink?: string;
-  githubLink?: string;
-};
-
-const FEATURED_PROJECTS: Project[] = [
-  {
-    num: "01",
-    title: "Finote",
-    badge: "Web App · Personal Project · Live",
-    tags: ["Laravel 12", "Sanctum", "Filament", "MySQL", "REST API"],
-    desc: "A personal finance manager built API-first. Full REST API for transaction recording, financial categories, and monthly reports — secured with Laravel Sanctum. Complete admin panel via Filament, and PDF export for monthly financial reports.\n\nCovered by automated feature tests, and patched after a real security audit that fixed an IDOR vulnerability (users could access other users' data by changing an ID in the URL) — a story worth telling in interviews. A companion Flutter mobile app, built by a collaborator, consumes the same API.",
-    screenshot: "/images/finote.png",
-    aspect: "landscape",
-    rotation: "-rotate-1.5",
-    liveLink: "https://finote-production-eb03.up.railway.app",
-    githubLink: "https://github.com/Athallahsy/finote",
-  },
-  {
-    num: "02",
-    title: "TaskFlow",
-    badge: "Fullstack Web App · Personal Project · Live",
-    tags: ["Node.js", "Express", "Sequelize", "MySQL", "React", "JWT"],
-    desc: "A lightweight Trello/Jira-style project & task manager, built fullstack from scratch: a real REST API with JWT authentication and bcrypt-hashed passwords, backed by MySQL (TiDB Cloud) via Sequelize.\n\nFeatures a 3-column kanban board, per-project task CRUD, and a dashboard with live progress charts. Deployed as a Vercel serverless function on the backend, talking to a serverless cloud database over SSL — a genuinely modern deployment setup, not just a local demo.",
-    screenshot: "/images/taskflow.png",
-    aspect: "landscape",
-    rotation: "rotate-2",
-    liveLink: "https://taskflow-frontend-atha.vercel.app",
-  },
-  {
-    num: "03",
-    title: "AyamKu",
-    badge: "Mobile · Personal Project · Flutter",
-    tags: ["Flutter", "Dart", "Hive", "Provider", "fl_chart"],
-    desc: "My father used to manage his chicken farm with handwritten notes — feed calculations, expenses, all on paper. I built him an Android app to replace that.\n\nAyamKu supports up to 3 coops, auto-calculates daily feed and water needs based on growth phase (Starter, Grower, Finisher), tracks income and expenses with weekly charts, and estimates profit/loss per harvest cycle. Designed with large text and minimal UI — because the user isn't a tech-savvy young person, it's my dad.",
-    screenshot: "/images/ayamku.png",
-    aspect: "portrait",
-    rotation: "-rotate-2",
-    githubLink: "https://github.com/Athallahsy/AyamKu",
-  },
-  {
-    num: "04",
-    title: "Herbal Qaf",
-    badge: "Web · Family Business · Live",
-    tags: ["Next.js", "Tailwind CSS", "Framer Motion", "RajaOngkir API"],
-    desc: "My mother runs a herbal drink brand. Orders used to come in through scattered WhatsApp messages — slow and error-prone.\n\nI built a branded e-commerce website that handles the entire order flow: product selection → address input → automatic shipping cost via RajaOngkir API → a pre-filled WhatsApp message with complete order details. What used to take 10 back-and-forth messages now takes one click.",
-    screenshot: "/images/herbal-qaf.png",
-    aspect: "landscape",
-    rotation: "rotate-3",
-    liveLink: "https://herbal-qaf.vercel.app",
-  },
-  {
-    num: "05",
-    title: "Muhayya Fair 2025",
-    badge: "Landing Page · Freelance · Live",
-    tags: ["HTML", "CSS", "Bootstrap", "AOS"],
-    desc: "Event landing page for SD Muhammadiyah Haijah Nurijah Banjarmasin — a real school event with a real deadline. Scroll animations via AOS, deployed to Vercel, used live during the event. Simple stack, real client, shipped on time.",
-    screenshot: "/images/muhayya-fair.png",
-    aspect: "landscape",
-    rotation: "rotate-2",
-    liveLink: "https://muhayya-fair.vercel.app",
-  },
-];
-
-const ARCHIVE_PROJECTS = [
-  {
-    title: "Inkwell",
-    desc: "Blog platform with role-based auth & editorial UI. Laravel · Breeze · MySQL · Blade",
-    href: "https://github.com/Athallahsy/inkwell",
-    label: "github.com/Athallahsy/inkwell",
-  },
-  {
-    title: "Portfolio",
-    desc: "This website. React · Tailwind CSS · Three.js · GSAP",
-    href: "https://portofolio-eight-vert.vercel.app",
-    label: "portofolio-eight-vert.vercel.app",
-  },
-];
-
-// Technical Grid Blueprint Mark
-function CoordinateCross({ className }: { className?: string }) {
-  return (
-    <svg className={className} width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-      <path d="M8 2V14M2 8H14" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-// Small pill/chip used for tech tags and metadata
-function Chip({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <span
-      className="tag-chip inline-flex items-center whitespace-nowrap rounded px-2.5 py-1 border border-[#27272A] bg-[#121212] text-xs font-medium text-[#A1A1AA] transition-colors hover:border-[#3F3F46]"
-      style={{ fontFamily: "var(--font-space-grotesk), sans-serif" }}
-    >
-      {children}
-    </span>
-  );
-}
+import StickyLayer from "@/components/StickyLayer";
+import {
+  FEATURED_PROJECTS,
+  PROFILE,
+  type ProjectPoster,
+} from "@/data/portfolioData";
+import { useStrike } from "@/context/StrikeContext";
+import { useGhostDrift } from "@/lib/useGhostDrift";
 
 export default function Projects() {
-  const containerRef = useRef<HTMLElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const cloudsRef = useRef<HTMLDivElement>(null);
-  const airplaneRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const watermarkRef = useRef<HTMLSpanElement>(null);
-  const progressBarRef = useRef<HTMLDivElement>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
+  const { lang, playClick } = useStrike();
+  const [selectedProject, setSelectedProject] = useState<ProjectPoster | null>(
+    null,
+  );
 
-  useEffect(() => {
-    const mm = gsap.matchMedia();
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const ghostRef = useRef<HTMLDivElement>(null);
 
-    // Header eyebrow & title animations
-    const eyebrowText = document.querySelector<HTMLElement>(
-      "#projects .sec-eyebrow-text",
-    );
-    const eyebrowDash = document.querySelector<HTMLElement>(
-      "#projects .sec-eyebrow-dash",
-    );
-    if (eyebrowText) {
-      gsap.to(eyebrowText, {
-        y: "0%",
-        duration: 0.6,
-        ease: "power2.out",
-        scrollTrigger: { trigger: "#projects", start: "top 83%" },
-      });
-    }
-    if (eyebrowDash) {
-      gsap.to(eyebrowDash, {
-        scaleX: 1,
-        duration: 0.5,
-        ease: "power2.inOut",
-        delay: 0.1,
-        scrollTrigger: { trigger: "#projects", start: "top 83%" },
-      });
-    }
-
-    document
-      .querySelectorAll<HTMLElement>("#projects .sec-title .clip-inner")
-      .forEach((line, i) => {
-        gsap.to(line, {
-          y: "0%",
-          duration: 1.05,
-          ease: "power4.out",
-          delay: i * 0.07,
-          scrollTrigger: { trigger: "#projects .sec-title", start: "top 83%" },
-        });
-      });
-
-    type TrailDot = { x: number; y: number; timestamp: number };
-    let trail: TrailDot[] = [];
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-
-    let isCanvasActive = false;
-    const renderTrail = () => {
-      if (!ctx || !canvas || !isCanvasActive) return;
-      if (trail.length === 0) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const now = Date.now();
-      trail = trail.filter((dot) => now - dot.timestamp < 800);
-      trail.forEach((dot) => {
-        const age = now - dot.timestamp;
-        const life = age / 800;
-        const opacity = 1 - life;
-        ctx.beginPath();
-        ctx.arc(dot.x, dot.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(3, 105, 161, ${opacity * 0.85})`;
-        ctx.fill();
-      });
-    };
-
-    mm.add("(min-width: 1024px)", () => {
-      const container = containerRef.current;
-      const track = trackRef.current;
-      if (!container || !track) return;
-
-      isCanvasActive = true;
-      gsap.ticker.add(renderTrail);
-
-      if (cloudsRef.current) {
-        cloudsRef.current.style.width = `${track.scrollWidth}px`;
-      }
-
-      const resizeCanvas = () => {
-        if (canvas) {
-          canvas.width = track.scrollWidth;
-          canvas.height = container.offsetHeight;
-        }
-      };
-      resizeCanvas();
-
-      type PathPoint = { x: number; y: number };
-      const planeOffset = 60;
-
-      const calculateDesktopPath = (): PathPoint[] => {
-        const cards = Array.from(
-          document.querySelectorAll<HTMLElement>(".featured-project-card"),
-        );
-        const containerHeight = container.offsetHeight || window.innerHeight;
-        if (!cards.length) return [];
-
-        const centerY = containerHeight * 0.5; // ← center vertically
-        const waveAmplitude = containerHeight * 0.25; // ← ±25% amplitude
-
-        const points: PathPoint[] = [
-          {
-            x: -100 - planeOffset,
-            y: centerY - planeOffset, // ← start centered
-          },
-        ];
-
-        cards.forEach((card, i) => {
-          const cardLeft = card.offsetLeft;
-          const cardWidth = card.offsetWidth;
-          const centerX = cardLeft + cardWidth * 0.5;
-
-          // Wave centered at 50% viewport height
-          const y = centerY + Math.sin(i * 1.2) * waveAmplitude;
-
-          points.push({
-            x: centerX - planeOffset,
-            y: y - planeOffset,
-          });
-        });
-
-        const lastCard = cards[cards.length - 1];
-        const endX =
-          (lastCard
-            ? lastCard.offsetLeft + lastCard.offsetWidth
-            : track.scrollWidth) + 800;
-        points.push({
-          x: endX - planeOffset,
-          y: centerY - planeOffset, // ← end centered
-        });
-
-        return points;
-      };
-
-      const points = calculateDesktopPath();
-
-      if (points.length && airplaneRef.current) {
-        gsap.set(airplaneRef.current, {
-          x: points[0].x,
-          y: points[0].y,
-        });
-      }
-
-      let lastX = points[0]?.x || 0;
-      let lastY = points[0]?.y || 0;
-
-      const mainTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: container,
-          start: "top top",
-          end: () => "+=" + (track.scrollWidth - window.innerWidth),
-          scrub: 1,
-          pin: true,
-          invalidateOnRefresh: true,
-          onToggle: (self) => {
-            setIsScrolling(self.isActive);
-          },
-          onUpdate: (self) => {
-            if (progressBarRef.current) {
-              progressBarRef.current.style.transform = `scaleX(${self.progress})`;
-            }
-          },
-        },
-      });
-
-      // 1. Main track horizontal scroll (1.0x speed)
-      mainTl.to(
-        track,
-        {
-          x: () => -(track.scrollWidth - window.innerWidth),
-          ease: "none",
-          duration: 1,
-        },
-        0,
-      );
-
-      // 2. Cloud parallax layer (0.4x speed) across the full track width
-      if (cloudsRef.current) {
-        mainTl.to(
-          cloudsRef.current,
-          {
-            x: () => -(track.scrollWidth - window.innerWidth) * 0.4,
-            ease: "none",
-            duration: 1,
-          },
-          0,
-        );
-      }
-
-      // 2b. WORK watermark drifts even slower (0.12x) so the whole section
-      // reads as layered depth rather than a static background label.
-      if (watermarkRef.current) {
-        mainTl.to(
-          watermarkRef.current,
-          {
-            x: () => -(track.scrollWidth - window.innerWidth) * 0.12,
-            ease: "none",
-            duration: 1,
-          },
-          0,
-        );
-      }
-
-      // 3. Parallax shift inside each card screenshot
-      const cardImages = Array.from(
-        document.querySelectorAll<HTMLElement>(".card-image-parallax"),
-      );
-      cardImages.forEach((img) => {
-        mainTl.fromTo(img, { x: 20 }, { x: -20, ease: "none", duration: 1 }, 0);
-      });
-
-      // 4. Airplane motion path (z-10, behind cards at z-20) synced to scroll
-      if (airplaneRef.current && points.length) {
-        mainTl.to(
-          airplaneRef.current,
-          {
-            motionPath: {
-              path: points,
-              autoRotate: true,
-              curviness: 1.2,
-            },
-            ease: "none",
-            duration: 1,
-            onUpdate: function () {
-              if (!airplaneRef.current) return;
-              const x = gsap.getProperty(airplaneRef.current, "x") as number;
-              const y = gsap.getProperty(airplaneRef.current, "y") as number;
-              const dist = Math.hypot(x - lastX, y - lastY);
-              if (dist > 18) {
-                trail.push({
-                  x: x + planeOffset,
-                  y: y + planeOffset,
-                  timestamp: Date.now(),
-                });
-                lastX = x;
-                lastY = y;
-              }
-            },
-          },
-          0,
-        );
-      }
-
-      // 5. Tag chips stagger in as each card scrolls into view, tied to the
-      // horizontal scroll position instead of vertical viewport entry.
-      document
-        .querySelectorAll<HTMLElement>(".featured-project-card")
-        .forEach((card) => {
-          const chips = card.querySelectorAll<HTMLElement>(".tag-chip");
-          if (!chips.length) return;
-          gsap.fromTo(
-            chips,
-            { opacity: 0, y: 8 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.5,
-              ease: "power2.out",
-              stagger: 0.06,
-              scrollTrigger: {
-                containerAnimation: mainTl,
-                trigger: card,
-                start: "left 75%",
-                toggleActions: "play none none reverse",
-              },
-            },
-          );
-        });
-    });
-
-    mm.add("(max-width: 1023px)", () => {
-      document
-        .querySelectorAll<HTMLElement>(".featured-project-row")
-        .forEach((row) => {
-          gsap.fromTo(
-            row,
-            { opacity: 0, y: 50 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.8,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: row,
-                start: "top 75%",
-              },
-            },
-          );
-        });
-
-      // Same tag stagger, but tied to normal vertical scroll on mobile.
-      document
-        .querySelectorAll<HTMLElement>(".featured-project-card")
-        .forEach((card) => {
-          const chips = card.querySelectorAll<HTMLElement>(".tag-chip");
-          if (!chips.length) return;
-          gsap.fromTo(
-            chips,
-            { opacity: 0, y: 8 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.5,
-              ease: "power2.out",
-              stagger: 0.06,
-              scrollTrigger: {
-                trigger: card,
-                start: "top 75%",
-              },
-            },
-          );
-        });
-    });
-
-    // Debounced window resize handler (200ms)
-    let resizeTimer: ReturnType<typeof setTimeout>;
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        ScrollTrigger.refresh();
-      }, 200);
-    };
-
-    window.addEventListener("resize", handleResize);
-
-    return () => {
-      clearTimeout(resizeTimer);
-      window.removeEventListener("resize", handleResize);
-      gsap.ticker.remove(renderTrail);
-      mm.revert();
-    };
-  }, []);
+  useGhostDrift(wrapRef, ghostRef);
 
   return (
-    <section
-      id="projects"
-      ref={containerRef}
-      style={{
-        position: "relative",
-        zIndex: 20,
-        background: "#080808",
-        overflow: "hidden",
-      }}
-      className="lg:h-screen lg:w-full"
+    <StickyLayer
+      id="portafolio"
+      zIndex={4}
+      nowPlayingLabel="A3 · PORTFOLIO"
+      nowPlayingColor="#22d3ff"
+      className="brick-wall py-24 md:py-[120px] px-4 sm:px-8 lg:px-14"
     >
-      {/* Watermark WORK (z-0) */}
-      <span
-        aria-hidden
-        ref={watermarkRef}
-        style={{
-          position: "absolute",
-          top: "10%",
-          right: "5%",
-          fontSize: "clamp(120px, 20vw, 320px)",
-          fontWeight: 900,
-          letterSpacing: "-0.04em",
-          color: "#FFFFFF",
-          opacity: 0.03,
-          lineHeight: 1,
-          userSelect: "none",
-          pointerEvents: "none",
-          fontFamily: "var(--font-anton)",
-          zIndex: 0,
-          // willChange is set by GSAP automatically when the ScrollTrigger animation begins.
-          // Declaring it statically on an element that only moves at 0.12x speed is wasteful.
-        }}
-      >
-        WORK
-      </span>
-
-      {/* ── Horizontal Scroll Progress Indicator (desktop only) ──────────── */}
-      {/* Visible only while the section is pinned / active */}
-      <div
-        aria-hidden
-        className="hidden lg:flex"
-        style={{
-          position: "absolute",
-          bottom: 28,
-          left: "50%",
-          transform: "translateX(-50%)",
-          zIndex: 50,
-          opacity: isScrolling ? 1 : 0.35,
-          transition: "opacity 0.4s ease",
-          pointerEvents: "none",
-        }}
-      >
-        {/* Track bar */}
+      <div ref={wrapRef} className="relative w-full">
+        {/* Outlined Horizontal Scroll-Drift Ghost Watermark (.ghost) */}
         <div
+          ref={ghostRef}
+          aria-hidden="true"
+          className="pointer-events-none select-none font-sign uppercase absolute -left-4 sm:-left-8 lg:-left-14 whitespace-nowrap"
           style={{
-            width: 140,
-            height: 3,
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: 9999,
-            overflow: "hidden",
+            top: "clamp(-50px, -2vw, -10px)",
+            fontSize: "clamp(7rem, 20vw, 19rem)",
+            lineHeight: 1,
+            letterSpacing: "-0.02em",
+            color: "transparent",
+            WebkitTextStroke: "1.5px rgba(244, 241, 234, 0.1)",
+            willChange: "transform",
           }}
         >
-          <div
-            ref={progressBarRef}
-            style={{
-              height: "100%",
-              width: "100%",
-              transform: "scaleX(0)",
-              transformOrigin: "left center",
-              background: "var(--primary)",
-              borderRadius: 9999,
-              willChange: "transform",
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Track wrapper for Desktop horizontal scroll & Mobile vertical layout */}
-      <div
-        ref={trackRef}
-        className="w-full lg:h-full lg:flex lg:items-center lg:px-20 lg:gap-16 lg:w-max py-28 lg:py-0 px-6 max-w-[1200px] lg:max-w-none mx-auto lg:mx-0 relative z-10"
-        style={{ transform: "translateZ(0)", willChange: "transform" }}
-      >
-        {/* Technical Blueprint Coordinate Layer (z-5) */}
-        <div
-          ref={cloudsRef}
-          className="hidden lg:block pointer-events-none absolute top-0 left-0 h-full z-5 overflow-hidden text-white/[0.08]"
-          style={{ transform: "translateZ(0)", willChange: "transform" }}
-        >
-          <CoordinateCross className="absolute top-[15%] left-[4%]" />
-          <CoordinateCross className="absolute top-[68%] left-[13%]" />
-          <CoordinateCross className="absolute top-[22%] left-[22%]" />
-          <CoordinateCross className="absolute top-[75%] left-[31%]" />
-          <CoordinateCross className="absolute top-[18%] left-[40%]" />
-          <CoordinateCross className="absolute top-[65%] left-[49%]" />
-          <CoordinateCross className="absolute top-[20%] left-[58%]" />
-          <CoordinateCross className="absolute top-[72%] left-[67%]" />
-          <CoordinateCross className="absolute top-[15%] left-[76%]" />
-          <CoordinateCross className="absolute top-[66%] left-[85%]" />
-          <CoordinateCross className="absolute top-[25%] left-[94%]" />
+          {lang === "id" ? "PORTOFOLIO PORTOFOLIO" : "PORTFOLIO PORTFOLIO"}
         </div>
 
-        {/* Trail canvas overlay (z-10: behind cards at z-20) */}
-        <canvas
-          ref={canvasRef}
-          className="hidden lg:block pointer-events-none absolute top-0 left-0 z-10"
-        />
-
-        {/* Airplane SVG (z-10: behind cards at z-20) */}
-        <div
-          ref={airplaneRef}
-          className="hidden lg:block pointer-events-none absolute top-0 left-0 w-[120px] h-[120px] z-10"
-        >
-          <Image
-            src="/images/pesawat.svg"
-            alt=""
-            aria-hidden="true"
-            width={120}
-            height={120}
-            style={{ width: "100%", height: "100%" }}
-            priority={false}
-          />
-        </div>
-
-        {/* Header block (z-20) */}
-        <div className="sec-inner mb-16 lg:mb-0 lg:flex-shrink-0 lg:w-[360px] lg:pr-8 relative z-20">
-          <div className="sec-eyebrow flex items-center gap-4 mb-5 overflow-hidden">
-            <span
-              className="sec-eyebrow-text"
-              style={{ color: "var(--primary)", fontWeight: 600 }}
+        <div className="relative z-10 max-w-[1320px] mx-auto w-full">
+          {/* Section Head matching Strike.uno (.section-head single horizontal row on desktop) */}
+          <div className="relative z-10 mb-10 flex flex-wrap items-end gap-x-8 gap-y-3">
+            <h2
+              className="font-sign uppercase m-0 leading-[0.95] tracking-[-0.01em] text-[#f4f1ea]"
+              style={{ fontSize: "clamp(2.4rem, 5.4vw, 4.75rem)" }}
             >
-              {"// SELECTED WORK"}
-            </span>
-            <div
-              className="sec-eyebrow-dash"
-              style={{ background: "var(--primary)", width: 40 }}
-            />
+              {lang === "id" ? "PORTOFOLIO" : "PORTFOLIO"}
+            </h2>
+
+            <p className="flex-1 basis-[280px] max-w-[64ch] m-0 mb-2 px-4 py-3 rounded-[10px] bg-[#090b10]/80 backdrop-blur-[2px] text-[#d6d9e1] text-[15px] sm:text-[16px] leading-[1.55]">
+              {lang === "id" ? (
+                <>
+                  Dari membangun REST API aman, bot WhatsApp bertenaga AI,
+                  hingga aplikasi Android lapangan dan toko online.{" "}
+                  <strong className="text-[#f4f1ea] font-extrabold">
+                    Teknologi adalah alatnya. Dampak nyata adalah tujuannya.
+                  </strong>
+                </>
+              ) : (
+                <>
+                  From building secure REST APIs and AI WhatsApp bots to
+                  shipping Android field tools and e-commerce storefronts.{" "}
+                  <strong className="text-[#f4f1ea] font-extrabold">
+                    The stack is the medium. Real usage is the goal.
+                  </strong>
+                </>
+              )}
+            </p>
           </div>
 
-          <h2 className="sec-title">
-            <span className="clip-wrap block">
-              <span
-                className="clip-inner inline-block"
-                style={{
-                  color: "#FFFFFF",
-                  fontFamily: "var(--font-anton)",
-                  fontWeight: 400,
-                  textTransform: "uppercase",
-                  fontSize: "clamp(48px, 5vw, 72px)",
-                }}
-              >
-                Selected
-              </span>
-            </span>
-            <span className="clip-wrap block">
-              <span
-                className="clip-inner inline-block"
-                style={{
-                  color: "#94A3B8",
-                  fontFamily: "var(--font-anton)",
-                  fontWeight: 400,
-                  textTransform: "uppercase",
-                  fontSize: "clamp(48px, 5vw, 72px)",
-                }}
-              >
-                Projects.
-              </span>
-            </span>
-          </h2>
-        </div>
-
-        {/* Projects cards list (z-20) */}
-        <div className="flex flex-col gap-24 lg:flex-row lg:gap-20 lg:items-center relative z-20">
-          {FEATURED_PROJECTS.map((proj) => {
-            const isPortrait = proj.aspect === "portrait";
-            return (
-              <div
-                key={proj.num}
-                className="featured-project-row featured-project-card grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center bg-transparent p-0 lg:flex-shrink-0 lg:w-[920px]"
-              >
-                {/* Info column */}
-                <div
-                  className="flex flex-col justify-center lg:order-1 py-2"
+          {/* Wheat-Paste Poster Grid (.posters > .bposter) */}
+          <ul className="relative z-10 grid grid-cols-1 min-[901px]:grid-cols-3 gap-7 lg:gap-12 items-start m-0 p-0 list-none">
+            {FEATURED_PROJECTS.map((proj) => (
+              <li key={proj.num} className="bposter">
+                <button
+                  type="button"
+                  onClick={() => {
+                    playClick();
+                    setSelectedProject(proj);
+                  }}
+                  className="bposter-card group w-full text-left cursor-pointer focus:outline-none focus-visible:ring-4 focus-visible:ring-[#e9ff2e]"
                 >
-                  <div>
-                    {/* Number sits as a large subtle sequence marker */}
-                    <div className="relative mb-2 inline-block">
-                      <span
-                        aria-hidden
-                        className="pointer-events-none absolute -left-1 -top-4 select-none text-4xl font-black leading-none text-white/[0.06] md:text-5xl"
-                        style={{ fontFamily: "var(--font-space-grotesk)" }}
-                      >
-                        {proj.num}
-                      </span>
-                      {/* Structured project metadata badges */}
-                      <div className="relative pt-2 flex flex-wrap items-center gap-2">
-                        {proj.badge.split("·").map((segment, segIdx) => {
-                          const tag = segment.trim();
-                          const isLive = tag.toLowerCase() === "live";
-                          return (
-                            <span
-                              key={segIdx}
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${
-                                isLive
-                                  ? "border border-emerald-500/40 bg-emerald-500/10 text-emerald-400"
-                                  : "border border-[#27272A] bg-[#141414] text-white/90"
-                              }`}
-                              style={{ fontFamily: "var(--font-space-grotesk)" }}
-                            >
-                              {isLive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />}
-                              {tag}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  {/* Angled Masking Tape Corners (.tape-l & .tape-r) */}
+                  <span aria-hidden="true" className="tape tape-l" />
+                  <span aria-hidden="true" className="tape tape-r" />
 
-                    {/* Title */}
-                    <h3
-                      className="mb-4 leading-tight"
-                      style={{
-                        fontSize: "clamp(24px, 2.5vw, 32px)",
-                        fontFamily: "var(--font-space-grotesk)",
-                        fontWeight: 700,
-                        color: "#FFFFFF",
-                      }}
-                    >
-                      {proj.title}
-                    </h3>
-
-                    {/* Description */}
-                    <p
-                      className="mb-6 whitespace-pre-line text-sm leading-[1.75]"
-                      style={{ fontFamily: "var(--font-jakarta)", color: "rgba(255,255,255,0.85)" }}
-                    >
-                      {proj.desc}
-                    </p>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-6">
-                      {proj.tags.map((tag) => (
-                        <Chip key={tag}>{tag}</Chip>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Links */}
-                  <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1">
-                    {proj.liveLink && (
-                      <a
-                        href={proj.liveLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-white/90 transition-colors hover:text-primary-hover uppercase tracking-wider"
-                        style={{ fontFamily: "var(--font-space-grotesk)" }}
-                      >
-                        Visit website ↗
-                      </a>
-                    )}
-                    {proj.githubLink && (
-                      <a
-                        href={proj.githubLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs font-semibold text-white/70 transition-colors hover:text-white uppercase tracking-wider"
-                        style={{ fontFamily: "var(--font-space-grotesk)" }}
-                      >
-                        GitHub repository ↗
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                {/* Photo column — Tactile dark industrial card frame with zero fuzzy shadow */}
-                <div className="flex items-center justify-center lg:order-2 w-full">
-                  <div
-                    className={`group relative w-full ${
-                      isPortrait
-                        ? "max-w-[260px] aspect-[3/4]"
-                        : "max-w-[480px] aspect-[4/3]"
-                    } rounded-xl border border-[#27272A] bg-[#121214] p-2.5 transition-transform duration-300 ease-out ${proj.rotation} hover:rotate-0 hover:border-[#3F3F46]`}
-                  >
-                    <div className="relative h-full w-full overflow-hidden rounded-lg bg-[#080808]">
-                      <Image
-                        src={proj.screenshot}
-                        alt={proj.title}
-                        fill
-                        sizes="(max-width: 1024px) 100vw, 480px"
-                        priority={false}
-                        quality={85}
-                        className="card-image-parallax object-contain"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Archive section (z-20) */}
-        <div
-          className="mt-20 lg:mt-0 pt-12 lg:pt-0 lg:pl-12 lg:border-l lg:border-[#27272A] border-t border-[#27272A] lg:border-t-0 lg:flex-shrink-0 lg:w-[420px] relative z-20"
-        >
-          <span
-            className="mb-5 block text-[11px] font-bold uppercase tracking-[0.2em]"
-            style={{ fontFamily: "var(--font-space-grotesk)", color: "#A1A1AA" }}
-          >
-            {"// Also built"}
-          </span>
-
-          <div className="flex flex-col">
-            {ARCHIVE_PROJECTS.map((item) => (
-              <a
-                key={item.title}
-                href={item.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group flex items-start gap-4 border-b border-[#27272A] py-4 first:pt-0 last:border-b-0"
-              >
-                <span
-                  aria-hidden
-                  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg border border-[#27272A] bg-[#141414] text-base font-bold text-primary transition-colors group-hover:border-primary"
-                  style={{ fontFamily: "var(--font-space-grotesk)" }}
-                >
-                  {item.title.charAt(0)}
-                </span>
-                <span className="flex flex-1 flex-col gap-1 pt-0.5">
+                  {/* 808 / 632 Framed Behance-Style Poster Cover (.bp-img) */}
                   <span
-                    className="flex items-center justify-between text-base font-bold text-[#FFFFFF]"
-                    style={{ fontFamily: "var(--font-space-grotesk)" }}
+                    className="relative block w-full aspect-[808/632] p-[9px] overflow-hidden"
+                    style={{ background: proj.accentColor }}
                   >
-                    {item.title}
-                    <span className="text-sm font-semibold text-[#94A3B8] transition-colors group-hover:text-primary-hover">
-                      ↗
+                    {/* Pop-In Go Sticker */}
+                    <span
+                      style={{
+                        transition:
+                          "opacity 0.2s ease, transform 0.45s var(--ease-slap)",
+                      }}
+                      className="pointer-events-none opacity-0 scale-[1.4] -rotate-[14deg] group-hover:opacity-100 group-hover:scale-100 group-hover:-rotate-[4deg] group-focus-visible:opacity-100 group-focus-visible:scale-100 group-focus-visible:-rotate-[4deg] absolute top-4 right-4 z-30 px-3 py-2 border-[3px] border-white rounded-[10px] bg-[#e9ff2e] text-[#0b0d12] font-sign text-[12px] leading-none shadow-lg"
+                    >
+                      {lang === "id" ? "BUKA ->" : "VIEW ->"}
+                    </span>
+
+                    <span className="relative block w-full h-full rounded-[10px] overflow-hidden bg-[#12151c]">
+                      {proj.screenshot ? (
+                        proj.aspect === "portrait" ? (
+                          <span className="relative flex w-full h-full items-center justify-center bg-[#14171f] pb-8 pt-3 px-6">
+                            <span className="relative h-full aspect-[9/16] rounded-[14px] overflow-hidden border-[3px] border-white/15 shadow-2xl transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.07]">
+                              <Image
+                                src={proj.screenshot}
+                                alt={proj.title}
+                                fill
+                                sizes="220px"
+                                className="object-cover object-top"
+                              />
+                            </span>
+                          </span>
+                        ) : (
+                          <Image
+                            src={proj.screenshot}
+                            alt={proj.title}
+                            fill
+                            sizes="(max-width: 900px) min(92vw, 500px), 30vw"
+                            className="object-cover object-top transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.07] group-hover:saturate-115 group-hover:contrast-105"
+                          />
+                        )
+                      ) : (
+                        <span className="relative flex flex-col justify-start w-full h-full p-4 bg-[#10131a] transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.04]">
+                          <span className="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
+                            <span className="font-mono text-[10px] text-[#3dff8a] font-bold">
+                              WA-BOT · ONLINE
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-[#ffb12b] text-[#0b0d12] font-sign text-[9px]">
+                              PROD
+                            </span>
+                          </span>
+                          <span className="mt-2.5 grid grid-cols-2 gap-2">
+                            <span className="p-2 rounded bg-[#181c26] border border-white/10">
+                              <span className="block text-[9px] uppercase text-[#8a91a1] font-bold">
+                                LCP SPEED
+                              </span>
+                              <span className="block font-sign text-sm text-[#e9ff2e] mt-0.5">
+                                23.1s -&gt; 3.6s
+                              </span>
+                            </span>
+                            <span className="p-2 rounded bg-[#181c26] border border-white/10">
+                              <span className="block text-[9px] uppercase text-[#8a91a1] font-bold">
+                                AUDIT FIXES
+                              </span>
+                              <span className="block font-sign text-sm text-[#3dff8a] mt-0.5">
+                                12+ PATCHED
+                              </span>
+                            </span>
+                          </span>
+                        </span>
+                      )}
+
+                      {/* Strike-style Behance Cover Bottom Title Scrim */}
+                      <span
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 flex flex-col justify-end px-3.5 pb-3 pt-10 bg-gradient-to-t from-black/95 via-black/75 to-transparent"
+                      >
+                        <span
+                          className="text-[11px] font-bold tracking-tight leading-tight drop-shadow"
+                          style={{ color: proj.accentColor }}
+                        >
+                          {proj.coverSubtitle}
+                        </span>
+                        <span className="text-white font-extrabold text-[21px] sm:text-[24px] leading-[1.06] tracking-[-0.02em] drop-shadow-md mt-0.5">
+                          {proj.coverHeadline}
+                        </span>
+                      </span>
                     </span>
                   </span>
-                  <span
-                    className="text-xs leading-relaxed text-[#94A3B8]"
-                    style={{ fontFamily: "var(--font-jakarta)" }}
-                  >
-                    {item.desc}
-                  </span>
-                  <span
-                    className="text-[11px] font-medium text-[#71717A] transition-colors group-hover:text-primary-hover"
-                    style={{ fontFamily: "var(--font-space-grotesk)" }}
-                  >
-                    {item.label}
-                  </span>
-                </span>
-              </a>
+
+                  {/* Bungee Poster Title (turns --red on hover) */}
+                  <h3 className="mt-3.5 mb-0 font-sign uppercase font-normal leading-[1.12] text-[#0b0d12] group-hover:text-[#ff3b24] transition-colors duration-200 text-[clamp(1rem,1.45vw,1.22rem)]">
+                    {proj.title}
+                  </h3>
+
+                  {/* Red Uppercase Year / Category Strip */}
+                  <time className="block mt-2 text-[#ff3b24] font-extrabold text-[12px] tracking-[0.08em] uppercase">
+                    {proj.year} · {proj.category}
+                  </time>
+                </button>
+              </li>
             ))}
+          </ul>
+
+          {/* Bottom Cyan CTA (.section-cta > .btn.btn-cyan) */}
+          <div className="relative z-10 mt-12 flex flex-wrap gap-3.5">
+            <a
+              href={PROFILE.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => playClick()}
+              style={{ "--r": "1.5deg" } as React.CSSProperties}
+              className="strike-btn inline-flex items-center gap-2.5 px-[22px] py-[14px] rounded-[14px] border-[3px] border-white bg-[#22d3ff] text-[#0b0d12] font-sign text-[15px] tracking-[0.02em] leading-[1.1] shadow-[0_2px_2px_rgba(0,0,0,0.35),0_10px_22px_-6px_rgba(0,0,0,0.55)]"
+            >
+              <span>
+                {lang === "id" ? "LIHAT SEMUA DI GITHUB" : "VIEW ALL ON GITHUB"}
+              </span>
+              <span aria-hidden="true">↗</span>
+            </a>
           </div>
         </div>
       </div>
-    </section>
+
+      {/* ── PROJECT POSTER MODAL ───────────────────────────────── */}
+      {selectedProject && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedProject.title}
+          onClick={() => setSelectedProject(null)}
+          className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="paper-sheet relative max-w-2xl w-full p-6 sm:p-8 shadow-2xl animate-swap-in"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                playClick();
+                setSelectedProject(null);
+              }}
+              aria-label="Close modal"
+              className="absolute top-4 right-4 w-9 h-9 bg-[#0b0d12] text-[#e9ff2e] font-sign text-lg flex items-center justify-center hover:bg-[#ff3b24] hover:text-white transition-colors cursor-pointer"
+            >
+              ×
+            </button>
+
+            <span className="inline-block px-2.5 py-1 bg-[#0b0d12] text-[#e9ff2e] font-sign text-[10px] tracking-[0.14em] mb-3">
+              POSTER #{selectedProject.num} · {selectedProject.category}
+            </span>
+
+            <h3 className="font-sign text-2xl sm:text-3xl text-[#0b0d12] m-0 mb-4">
+              {selectedProject.title}
+            </h3>
+
+            <div className="relative w-full aspect-[16/9] bg-[#12151c] border border-[#0b0d12]/20 overflow-hidden mb-5">
+              {selectedProject.screenshot ? (
+                <Image
+                  src={selectedProject.screenshot}
+                  alt={selectedProject.title}
+                  fill
+                  sizes="680px"
+                  className="object-contain p-2"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                  <span className="font-tag text-3xl text-[#e9ff2e] mb-2">
+                    {selectedProject.title}
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#8a91a1]">
+                    PRODUCTION CASE · IT STAFF
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-sm sm:text-base text-[#24262c] leading-relaxed mb-4">
+              {selectedProject.desc[lang]}
+            </p>
+
+            <div className="flex flex-wrap gap-1.5 mb-5">
+              {selectedProject.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="px-2.5 py-1 bg-[#0b0d12]/10 text-[#0b0d12] text-[11px] font-bold uppercase tracking-wider"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-[#0b0d12]/15">
+              {selectedProject.liveLink && (
+                <a
+                  href={selectedProject.liveLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 bg-[#0b0d12] text-[#e9ff2e] font-sign text-xs uppercase tracking-wider hover:bg-[#ff3d8b] hover:text-white transition-colors"
+                >
+                  {lang === "id" ? "BUKA WEBSITE ↗" : "LIVE DEMO ↗"}
+                </a>
+              )}
+              {selectedProject.githubLink && (
+                <a
+                  href={selectedProject.githubLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-5 py-2.5 border-2 border-[#0b0d12] text-[#0b0d12] font-sign text-xs uppercase tracking-wider hover:bg-[#0b0d12] hover:text-[#f4f1ea] transition-colors"
+                >
+                  GITHUB REPO ↗
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </StickyLayer>
   );
 }

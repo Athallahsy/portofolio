@@ -3,24 +3,23 @@
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { ScrollTrigger } from "@/lib/gsap";
-import ScrollReveal from "./ScrollReveal";
-
-const SplashCursor = dynamic(() => import("./Splashcursor"), { ssr: false });
 
 const Lanyard = dynamic(() => import("./Lanyard"), {
   ssr: false,
   loading: () => (
     <div
       className="w-full h-full flex items-center justify-center"
-      style={{ minHeight: "400px" }}
+      style={{ minHeight: "480px" }}
     >
       <div
-        className="w-[60px] h-[60px] rounded-full border-2 animate-spin"
+        className="px-4 py-2 border text-[11px] font-bold uppercase tracking-[0.18em]"
         style={{
-          borderColor: "var(--primary-border)",
-          borderTopColor: "var(--primary)",
+          borderColor: "var(--border)",
+          color: "var(--text)",
         }}
-      />
+      >
+        LOADING 3D BADGE...
+      </div>
     </div>
   ),
 });
@@ -28,36 +27,12 @@ const Lanyard = dynamic(() => import("./Lanyard"), {
 export default function LanyardSection() {
   const sectionRef = useRef<HTMLElement>(null);
   const [startEntrance, setStartEntrance] = useState(false);
-  const [showSplashCursor, setShowSplashCursor] = useState(false);
   const [shouldMountLanyard, setShouldMountLanyard] = useState(false);
 
   useEffect(() => {
-    let resizeTimer: ReturnType<typeof setTimeout>;
-    const handleResize = () => {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(() => {
-        setShowSplashCursor(window.innerWidth >= 768 && isInViewRef.current);
-      }, 150);
-    };
-
-    // Track section visibility — WebGL fluid sim only runs when the section
-    // is actually on screen. This prevents continuous GPU drain while the
-    // user is on other sections (Projects, Skills, Footer, etc).
-    const isInViewRef = { current: false };
     const section = sectionRef.current;
-    const visibilityObserver = new IntersectionObserver(
-      (entries) => {
-        const inView = entries[0]?.isIntersecting ?? false;
-        isInViewRef.current = inView;
-        setShowSplashCursor(inView && window.innerWidth >= 768);
-      },
-      { rootMargin: "0px" },
-    );
-    if (section) visibilityObserver.observe(section);
+    if (!section) return;
 
-    // Lazy load the heavy 3D Three.js + Rapier physics canvas ONLY when the
-    // section actually enters the viewport (when user scrolls), completely
-    // eliminating 7,200ms WASM/Shader compilation from initial page load TBT.
     const lanyardObserver = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting) {
@@ -65,23 +40,18 @@ export default function LanyardSection() {
           lanyardObserver.disconnect();
         }
       },
-      { rootMargin: "50px 0px" },
+      { rootMargin: "120px 0px" },
     );
-    if (section) lanyardObserver.observe(section);
-
-    window.addEventListener("resize", handleResize);
+    lanyardObserver.observe(section);
 
     const trigger = ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: "top 95%",
+      trigger: section,
+      start: "top 85%",
       once: true,
       onEnter: () => setStartEntrance(true),
     });
 
     return () => {
-      clearTimeout(resizeTimer);
-      window.removeEventListener("resize", handleResize);
-      visibilityObserver.disconnect();
       lanyardObserver.disconnect();
       trigger.kill();
     };
@@ -91,132 +61,166 @@ export default function LanyardSection() {
     <section
       ref={sectionRef}
       id="about"
-      className="relative overflow-hidden"
-      style={{ background: "#080808", padding: "100px 64px 100px" }}
+      className="relative w-full border-b"
+      style={{
+        background: "var(--bg)",
+        color: "var(--text)",
+        borderColor: "var(--border)",
+      }}
     >
-      {/* ── Background layer: SplashCursor (WebGL fluid sim) ── */}
-      {showSplashCursor && (
+      {/* 12-Column Architectural Grid with 1-Col Left/Right Gutters */}
+      <div className="grid grid-cols-4 md:grid-cols-12">
         <div
-          className="absolute inset-0 z-0"
-          aria-hidden
-          style={{ pointerEvents: "none" }}
+          className="col-span-4 md:col-span-10 md:col-start-2 md:border-x"
+          style={{ borderColor: "var(--border)" }}
         >
-          <SplashCursor
-            PRESSURE={0.35}
-            SPLAT_RADIUS={0.15}
-            SPLAT_FORCE={4500}
-            DENSITY_DISSIPATION={3}
-            VELOCITY_DISSIPATION={1.25}
-            COLOR="#0369A1"
-            BACK_COLOR={{ r: 0, g: 0, b: 0 }}
-            TRANSPARENT
-          />
-        </div>
-      )}
-
-      <div className="max-w-[1280px] ml-auto mr-0 flex items-center justify-between gap-[48px] lanyard-section-inner relative z-10 pointer-events-none">
-        {/* LEFT — Copy */}
-        <div
-          className="lanyard-text flex-1 min-w-0 pointer-events-auto"
-          style={{ maxWidth: "480px" }}
-        >
-          <h2
-            className="font-display font-bold leading-tight mb-6"
-            style={{
-              fontSize: "clamp(32px, 4.5vw, 54px)",
-              letterSpacing: "-0.025em",
-              color: "#FFFFFF",
-              fontVariationSettings: "'opsz' 72",
-            }}
-          >
-            Hi, I&apos;m
-            <br />
-            <span style={{ fontStyle: "italic", color: "var(--primary)" }}>
-              Athallah.
-            </span>
-          </h2>
-
+          {/* Section Header Row */}
           <div
-            className="flex flex-col gap-5"
-            style={{
-              fontFamily: "var(--font-jakarta)",
-              fontWeight: 300,
-              fontSize: "14px",
-              lineHeight: "1.75",
-            }}
+            className="border-b px-6 md:px-10 pt-16 md:pt-28 pb-8 md:pb-10"
+            style={{ borderColor: "var(--border)" }}
           >
-            <ScrollReveal text="A Junior Fullstack Developer currently studying Software Engineering (D4 TRPL) at Politeknik IDN Bogor — semester 5, and counting every project as a step closer to building software that actually gets used." />
-            <ScrollReveal text="I work with Laravel, Filament, and Sanctum on the backend, React and Tailwind on the front — recently built Finote, a personal finance manager with full REST API and PDF reporting, and shipped a real event landing page that's already live and used by an actual school event." />
-            <ScrollReveal text="What I care about most isn't just making things work — it's making them work for someone. Whether that's an admin managing data through Filament, or a visitor scrolling through a landing page on their phone." />
-            <ScrollReveal
-              text="Outside of code, I'm a Hafiz of the Quran (30 Juz) — something that taught me patience and discipline long before I ever wrote a line of code."
+            <span className="block text-[11px] font-bold uppercase tracking-[0.18em] opacity-70 mb-2">
+              THE
+            </span>
+            <h2
+              className="font-display font-bold lowercase m-0"
               style={{
-                fontWeight: 400,
-                marginTop: "12px",
+                fontSize: "clamp(3rem, 7vw, 6.2rem)",
+                lineHeight: 0.86,
+                letterSpacing: "-0.06em",
               }}
-            />
+            >
+              developer.
+            </h2>
+          </div>
+
+          {/* 2-Column Content Split: Bio (Left) + 3D Interactive Lanyard (Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-10">
+            {/* Left Column: Editorial Bio + Specs + CTA */}
+            <div
+              className="lg:col-span-5 border-b lg:border-b-0 lg:border-r p-6 md:p-10 flex flex-col justify-between gap-10"
+              style={{ borderColor: "var(--border)" }}
+            >
+              <div className="flex flex-col gap-5">
+                <p
+                  className="font-display text-lg md:text-xl font-medium leading-relaxed m-0"
+                  style={{ maxWidth: "46ch" }}
+                >
+                  A Junior Fullstack Developer currently studying Software
+                  Engineering (D4 TRPL) at Politeknik IDN Bogor, now in semester
+                  5, counting every project as a step closer to building
+                  software that actually gets used.
+                </p>
+
+                <p
+                  className="font-body text-sm md:text-base leading-relaxed m-0 opacity-85"
+                  style={{ maxWidth: "48ch" }}
+                >
+                  I work with Laravel, Filament, and Sanctum on the backend, and
+                  React, Next.js, and Tailwind on the frontend. Recently I built
+                  Finote, a personal finance manager with a complete REST API
+                  and PDF reporting, and shipped a live event landing page used
+                  by an actual school event.
+                </p>
+
+                <p
+                  className="font-body text-sm md:text-base leading-relaxed m-0 opacity-85"
+                  style={{ maxWidth: "48ch" }}
+                >
+                  What I care about most is making products work reliably for
+                  real people, whether that is an admin managing data through
+                  Filament or a parent ordering on their phone. Outside of code,
+                  I am a Hafiz of the Quran (30 Juz), a journey that taught me
+                  patience and consistency long before I wrote my first line of
+                  code.
+                </p>
+              </div>
+
+              {/* Architectural Metadata Table & CTA */}
+              <div className="flex flex-col gap-6">
+                <div
+                  className="grid grid-cols-2 border-t border-b py-4 gap-4"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.18em] opacity-60 mb-1">
+                      EDUCATION
+                    </span>
+                    <span className="font-display text-xs md:text-sm font-bold uppercase tracking-[0.04em]">
+                      Politeknik IDN (Sem 5)
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-[10px] font-bold uppercase tracking-[0.18em] opacity-60 mb-1">
+                      LOCATION
+                    </span>
+                    <span className="font-display text-xs md:text-sm font-bold uppercase tracking-[0.04em]">
+                      Banjarbaru / Relocate to Bandung
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <a
+                    href="#contact"
+                    className="group inline-flex items-center gap-3 border px-6 py-3.5 text-xs font-bold uppercase tracking-[0.18em] transition-colors duration-300 hover:bg-[var(--inv-bg)] hover:text-[var(--inv-text)]"
+                    style={{
+                      borderColor: "var(--text)",
+                      color: "var(--text)",
+                    }}
+                  >
+                    <span className="roll-link">
+                      <span className="roll-link-inner">START A PROJECT</span>
+                      <span className="roll-link-clone" aria-hidden="true">
+                        START A PROJECT
+                      </span>
+                    </span>
+                    <span>→</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Interactive 3D Lanyard ID Card */}
+            <div
+              className="lg:col-span-5 relative flex flex-col justify-between overflow-hidden"
+              style={{
+                minHeight: "540px",
+                background:
+                  "radial-gradient(circle at 50% 45%, rgba(61, 18, 23, 0.14) 0%, transparent 72%)",
+              }}
+            >
+              {/* Top Corner Instruction Label */}
+              <div className="relative z-20 flex items-center justify-between px-6 pt-5 pointer-events-none">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-65">
+                  INTERACTIVE 3D ID
+                </span>
+                <span
+                  className="px-2.5 py-1 border text-[10px] font-bold uppercase tracking-[0.16em]"
+                  style={{ borderColor: "var(--border)" }}
+                >
+                  DRAG &amp; RELEASE CARD
+                </span>
+              </div>
+
+              {/* 3D Canvas Container */}
+              <div className="relative inset-0 flex-1 w-full h-[500px] md:h-[560px]">
+                {shouldMountLanyard ? (
+                  <Suspense fallback={null}>
+                    <Lanyard
+                      position={[0, 1.9, 14.8]}
+                      gravity={[0, -40, 0]}
+                      startEntrance={startEntrance}
+                    />
+                  </Suspense>
+                ) : (
+                  <div className="w-full h-full" />
+                )}
+              </div>
+            </div>
           </div>
         </div>
-
-        {/* RIGHT — Spacer to preserve height and desktop structure */}
-        <div
-          className="lanyard-spacer flex-1 min-w-0 hidden md:block"
-          style={{ height: "580px" }}
-        />
       </div>
-
-      {/* Lanyard Canvas Container */}
-      <div className="lanyard-canvas-wrap">
-        {shouldMountLanyard ? (
-          <Suspense fallback={null}>
-            <Lanyard
-              position={[2.5, 1.9, 14.8]}
-              gravity={[0, -40, 0]}
-              startEntrance={startEntrance}
-            />
-          </Suspense>
-        ) : (
-          <div
-            className="w-full h-full flex items-center justify-center opacity-0"
-            style={{ minHeight: "400px" }}
-          />
-        )}
-      </div>
-
-      <style>{`
-        @media (min-width: 901px) {
-          .lanyard-canvas-wrap {
-            position: absolute !important;
-            top: 0;
-            left: 0;
-            width: 100% !important;
-            height: 100% !important;
-            z-index: 20;
-          }
-        }
-        @media (max-width: 900px) {
-          #about { padding: 72px 24px 72px !important; }
-          .lanyard-section-inner {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 24px !important;
-            position: relative;
-            z-index: 20;
-            pointer-events: auto !important;
-            margin-left: 0 !important;
-            margin-right: 0 !important;
-          }
-          .lanyard-text { max-width: 100% !important; }
-          .lanyard-canvas-wrap {
-            position: relative;
-            width: 100% !important;
-            height: clamp(320px, 80vw, 480px) !important;
-            margin-top: 0 !important;
-            margin-right: 0 !important;
-            z-index: 10;
-          }
-        }
-      `}</style>
     </section>
   );
 }

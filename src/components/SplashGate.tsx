@@ -1,16 +1,18 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
-import dynamic from "next/dynamic";
 import Splash from "@/components/Splash";
 import Nav from "@/components/Nav";
 import Hero from "@/components/Hero";
-
-const TechStackStrip = dynamic(() => import("@/components/TechStackStrip"));
-const LanyardSection = dynamic(() => import("@/components/LanyardSection"));
-const Skills = dynamic(() => import("@/components/Skills"));
-const Projects = dynamic(() => import("@/components/Projects"));
-const FooterContact = dynamic(() => import("@/components/FooterContact"));
+import TapeBand from "@/components/TapeBand";
+import PreviaSection from "@/components/PreviaSection";
+import TurntableSection from "@/components/TurntableSection";
+import Projects from "@/components/Projects";
+import BrandsBand from "@/components/BrandsBand";
+import Skills from "@/components/Skills";
+import CratesSection from "@/components/CratesSection";
+import SinglesSection from "@/components/SinglesSection";
+import FooterContact from "@/components/FooterContact";
 
 const emptySubscribe = () => () => {};
 
@@ -27,13 +29,17 @@ export default function SplashGate() {
       {isMounted && !splashDone && (
         <Splash onComplete={() => setSplashDone(true)} />
       )}
-      <main style={{ position: "relative", isolation: "isolate" }}>
-        <Nav />
+      <Nav />
+      <main className="relative">
         <Hero />
-        <TechStackStrip />
-        <LanyardSection />
-        <Skills />
+        <TapeBand />
+        <PreviaSection />
+        <TurntableSection />
         <Projects />
+        <BrandsBand />
+        <Skills />
+        <CratesSection />
+        <SinglesSection />
         <FooterContact />
       </main>
     </>

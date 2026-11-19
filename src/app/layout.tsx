@@ -1,53 +1,52 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Plus_Jakarta_Sans, Anton } from "next/font/google";
+import { Bungee, Permanent_Marker, Archivo } from "next/font/google";
 import "./globals.css";
-import SmoothScroll from "@/components/SmoothScroll";
+import { StrikeProvider } from "@/context/StrikeContext";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  display: "swap",
-});
-
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-jakarta",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
-  display: "swap",
-});
-
-const anton = Anton({
-  variable: "--font-anton",
+const bungee = Bungee({
+  variable: "--f-sign",
   subsets: ["latin"],
   weight: "400",
   display: "swap",
 });
 
+const permanentMarker = Permanent_Marker({
+  variable: "--f-tag",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
+
+const archivo = Archivo({
+  variable: "--f-body",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL("https://athallahsy.vercel.app"),
-  title: "Athallah Muhammad Syaffa — Fullstack Developer",
+  title: "ATHALLAH - Fullstack Developer & Digital Craft",
   description:
-    "Portfolio of Athallah Muhammad Syaffa, a Fullstack Developer specializing in Laravel & React. Explore my projects and skills.",
+    "Portfolio of Athallah Muhammad Syaffa, Junior Fullstack Developer specializing in Laravel, React, Next.js, and Flutter.",
   keywords: [
     "Athallah Muhammad Syaffa",
     "Fullstack Developer",
     "Laravel",
     "React",
     "Next.js",
+    "Flutter",
     "Portfolio",
-    "Web Developer Indonesia",
-    "PHP Developer",
   ],
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Athallah Muhammad Syaffa — Fullstack Developer",
+    title: "ATHALLAH - Fullstack Developer",
     description:
-      "Portfolio of Athallah Muhammad Syaffa, a Fullstack Developer specializing in Laravel & React. Explore my projects and skills.",
+      "Interactive urban-vinyl developer portfolio of Athallah Muhammad Syaffa.",
     url: "https://athallahsy.vercel.app",
-    siteName: "Athallah Muhammad Syaffa",
+    siteName: "ATHALLAH",
     images: [
       {
         url: "/images/profile.png",
@@ -58,20 +57,13 @@ export const metadata: Metadata = {
     ],
     type: "website",
   },
-  twitter: {
-    card: "summary_large_image",
-    title: "Athallah Muhammad Syaffa — Fullstack Developer",
-    description:
-      "Portfolio of Athallah Muhammad Syaffa, a Fullstack Developer specializing in Laravel & React. Explore my projects and skills.",
-    images: ["/images/profile.png"],
-  },
   robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#080808",
+  themeColor: "#0b0d12",
 };
 
 export default function RootLayout({
@@ -83,14 +75,13 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${spaceGrotesk.variable} ${plusJakartaSans.variable} ${anton.variable} h-full antialiased overflow-x-hidden`}
-      style={{ scrollBehavior: "auto" }}
+      className={`${bungee.variable} ${permanentMarker.variable} ${archivo.variable} h-full antialiased overflow-x-clip`}
     >
       <body
         suppressHydrationWarning
-        className="min-h-full flex flex-col overflow-x-hidden bg-[#080808]"
+        className="min-h-full flex flex-col overflow-x-clip bg-[#0b0d12] text-[#d6d9e1]"
       >
-        <SmoothScroll>{children}</SmoothScroll>
+        <StrikeProvider>{children}</StrikeProvider>
       </body>
     </html>
   );
